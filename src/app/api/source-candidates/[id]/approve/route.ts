@@ -1,0 +1,74 @@
+import { NextResponse } from "next/server";
+
+import { requireAdminAccess } from "@/lib/auth";
+import { logDecision } from "@/server/repositories/decision-log-repository";
+import { createEditorialTask } from "@/server/repositories/editorial-task-repository";
+import {
+  getSourceCandidateById,
+  updateSourceCandidate,
+} from "@/server/repositories/discovery-repository";
+import {
+  createPolicySource,
+  findPolicySourceByPlatformUrl,
+} from "@/server/repositories/source-repository";
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await requireAdminAccess();
+  if (auth.kind === "missing-env") {
+    return NextResponse.json({ error: "Supabase environment is not configured." }, { status: 500 });
+  }
+
+  const { id } = await params;
+  const candidate = await getSourceCandidateById(id).catch(() => null);
+  if (!candidate) {
+    return NextResponse.json({ error: "Candidate not found." }, { status: 404 });
+  }
+
+  const existing = await findPolicySourceByPlatformUrl(candidate.platform_id, candidate.url);
+  if (existing) {
+    return NextResponse.redirect(new URL(`/admin/sources/${existing.id}`, request.url));
+  }
+
+  const source = await createPolicySource({
+    platform_id: candidate.platform_id,
+    title: candidate.title,
+    url: candidate.url,
+    final_url: null,
+    document_type: candidate.suggested_document_type ?? "other",
+    source_tier: candidate.suggested_tier ?? "tier_3_context",
+    use_for_scoring: false,
+    monitor_enabled: false,
+    status: "active",
+    last_reviewed_at: null,
+    created_by: auth.user.id,
+  });
+
+  await updateSourceCandidate(id, {
+    status: "approved",
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: auth.user.id,
+  });
+
+  await createEditorialTask({
+    taskType: "document_review",
+    platformId: candidate.platform_id,
+    relatedEntityType: "policy_source",
+    relatedEntityId: source.id,
+    title: `Fetch and process ${source.title ?? source.url}`,
+    createdBy: auth.user.id,
+  });
+
+  await logDecision({
+    platformId: candidate.platform_id,
+    entityType: "source_candidate",
+    entityId: candidate.id,
+    action: "source_candidate.approved",
+    newValue: source,
+    decidedBy: auth.user.id,
+  });
+
+  return NextResponse.redirect(new URL(`/admin/sources/${source.id}`, request.url));
+}
