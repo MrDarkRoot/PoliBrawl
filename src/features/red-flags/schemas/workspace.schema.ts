@@ -31,3 +31,8 @@ export const addChecklistItemSchema = z.object({
   text: z.string().min(1, "Text is required"),
   required: z.boolean().default(false),
 });
+
+export const deleteEvidenceSchema = z.object({
+  id: uuidSchema,
+  redFlagId: uuidSchema,
+});
