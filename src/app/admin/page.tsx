@@ -13,16 +13,20 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { countPlatforms } from "@/server/polibrawl/repositories/platform.repository";
+import { countSources } from "@/server/polibrawl/repositories/source.repository";
 
 const quickLinks = [
   { href: "/admin/platforms", label: "Platforms", icon: Building2 },
-  { href: "#", label: "Sources", icon: FileStack, disabled: true },
+  { href: "/admin/sources", label: "Sources", icon: FileStack },
   { href: "#", label: "Candidates", icon: ShieldAlert, disabled: true },
   { href: "#", label: "Community", icon: Users, disabled: true },
 ];
 
 export default async function AdminDashboardPage() {
-  const platformCount = await countPlatforms().catch(() => 0);
+  const [platformCount, sourceCount] = await Promise.all([
+    countPlatforms().catch(() => 0),
+    countSources().catch(() => 0),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -38,7 +42,7 @@ export default async function AdminDashboardPage() {
       />
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Platforms" value={platformCount} icon={<Building2 className="h-4 w-4 text-muted-foreground" />} />
-        <MetricCard label="Sources" value="Later" icon={<FileStack className="h-4 w-4 text-muted-foreground" />} />
+        <MetricCard label="Sources" value={sourceCount} icon={<FileStack className="h-4 w-4 text-muted-foreground" />} />
         <MetricCard label="Candidates" value="Later" icon={<ShieldAlert className="h-4 w-4 text-muted-foreground" />} />
         <MetricCard label="Community" value="Later" icon={<Users className="h-4 w-4 text-muted-foreground" />} />
       </section>
@@ -70,10 +74,10 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>
-              Sprint 2 proves the PoliBrawl stack end-to-end for the Platform Registry only.
+              Sprint 3 adds the Source Registry plus private fetch and paste capture, while later modules remain intentionally disabled.
             </p>
             <p>
-              Navigation keeps future PoliBrawl modules visible but disabled, while legacy discovery, clauses, rules, and review paths are separated under Legacy.
+              Navigation keeps active PoliBrawl modules first and keeps legacy discovery, clauses, rules, and review paths separated under Legacy.
             </p>
           </CardContent>
         </Card>

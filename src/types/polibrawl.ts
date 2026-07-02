@@ -12,12 +12,17 @@ export const platformStatuses = [
 ] as const;
 
 export const sourceTypes = [
-  "policy",
-  "help_center",
-  "payout_policy",
-  "account_policy",
-  "api_policy",
-  "appeals_policy",
+  "terms",
+  "user_agreement",
+  "payment_terms",
+  "payout_terms",
+  "account_limits",
+  "kyc_verification",
+  "refund_chargeback",
+  "developer_api",
+  "privacy_data",
+  "pricing_fees",
+  "appeals",
   "other",
 ] as const;
 
@@ -28,6 +33,8 @@ export const sourceStatuses = [
   "archived",
   "failed_capture",
 ] as const;
+export const captureMethods = ["fetch", "paste"] as const;
+export const captureStatuses = ["succeeded", "failed"] as const;
 
 export const redFlagCategories = [
   "money",
@@ -120,6 +127,8 @@ export type PlatformStatus = (typeof platformStatuses)[number];
 export type SourceType = (typeof sourceTypes)[number];
 export type SourcePriority = (typeof sourcePriorities)[number];
 export type SourceStatus = (typeof sourceStatuses)[number];
+export type CaptureMethod = (typeof captureMethods)[number];
+export type CaptureStatus = (typeof captureStatuses)[number];
 export type RedFlagCategory = (typeof redFlagCategories)[number];
 export type RedFlagLevel = (typeof redFlagLevels)[number];
 export type RedFlagCandidateStatus = (typeof redFlagCandidateStatuses)[number];
@@ -166,8 +175,53 @@ export type Source = BaseRecord & {
   body_text: string | null;
   status: SourceStatus;
   notes: string | null;
+  last_checked_at: IsoDatetime | null;
+  last_reviewed_at: IsoDatetime | null;
   captured_at: IsoDatetime | null;
   reviewed_at: IsoDatetime | null;
+};
+
+export type SourceSnapshot = {
+  id: Uuid;
+  source_id: Uuid;
+  capture_method: CaptureMethod;
+  original_url: string | null;
+  final_url: string | null;
+  http_status: number | null;
+  content_type: string | null;
+  content_hash: string | null;
+  title: string | null;
+  extracted_text: string | null;
+  text_preview: string | null;
+  word_count: number | null;
+  byte_size: number | null;
+  captured_at: IsoDatetime;
+  capture_status: CaptureStatus;
+  error_message: string | null;
+  created_at: IsoDatetime;
+};
+
+export type SourceListItem = Source & {
+  platform_name: string;
+  platform_slug: string;
+  latest_snapshot_id: Uuid | null;
+  latest_capture_status: CaptureStatus | null;
+  latest_snapshot_title: string | null;
+  latest_captured_at: IsoDatetime | null;
+  latest_http_status: number | null;
+  latest_content_type: string | null;
+  latest_word_count: number | null;
+};
+
+export type SourceSnapshotDetail = SourceSnapshot & {
+  platform_id: Uuid;
+  platform_name: string;
+  platform_slug: string;
+  source_title: string;
+  source_registry_url: string | null;
+  source_status: SourceStatus;
+  source_type: SourceType;
+  source_priority: SourcePriority;
 };
 
 export type RedFlagCandidate = BaseRecord & {
@@ -306,6 +360,18 @@ export type PublishPlatformDto = {
 
 export type CreateSourceDto = Omit<Source, "id" | "created_at" | "updated_at" | "archived_at">;
 export type UpdateSourceDto = Partial<CreateSourceDto>;
+export type CreateSourceSnapshotDto = Omit<SourceSnapshot, "id" | "created_at">;
+export type CaptureFetchSourceDto = {
+  source_id: Uuid;
+  url: string;
+  title?: string | null;
+};
+export type CapturePasteSourceDto = {
+  source_id: Uuid;
+  pasted_text: string;
+  title?: string | null;
+  original_url?: string | null;
+};
 
 export type CreateRedFlagCandidateDto = Omit<RedFlagCandidate, "id" | "created_at" | "updated_at" | "archived_at">;
 export type UpdateRedFlagCandidateDto = Partial<CreateRedFlagCandidateDto>;
@@ -404,6 +470,11 @@ export type PlatformListFilters = Partial<
 };
 export type SourceListFilters = Partial<
   Pick<Source, "id" | "platform_id" | "status" | "priority" | "source_type">
+> & {
+  search?: string;
+};
+export type SourceSnapshotListFilters = Partial<
+  Pick<SourceSnapshot, "id" | "source_id" | "capture_method" | "capture_status">
 >;
 export type RedFlagCandidateListFilters = Partial<
   Pick<RedFlagCandidate, "id" | "platform_id" | "source_id" | "status" | "category">

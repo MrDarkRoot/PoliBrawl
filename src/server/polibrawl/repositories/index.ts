@@ -1,5 +1,6 @@
 export * from "@/server/polibrawl/repositories/platform.repository";
 export * from "@/server/polibrawl/repositories/source.repository";
+export * from "@/server/polibrawl/repositories/source-snapshot.repository";
 export * from "@/server/polibrawl/repositories/red-flag-candidate.repository";
 export * from "@/server/polibrawl/repositories/red-flag.repository";
 export * from "@/server/polibrawl/repositories/evidence.repository";

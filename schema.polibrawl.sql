@@ -82,13 +82,15 @@ for each row execute function set_polibrawl_updated_at();
 create table if not exists sources (
   id uuid primary key default gen_random_uuid(),
   platform_id uuid not null references platforms(id) on delete restrict,
-  source_type text not null check (source_type in ('policy', 'help_center', 'payout_policy', 'account_policy', 'api_policy', 'appeals_policy', 'other')),
+  source_type text not null check (source_type in ('terms', 'user_agreement', 'payment_terms', 'payout_terms', 'account_limits', 'kyc_verification', 'refund_chargeback', 'developer_api', 'privacy_data', 'pricing_fees', 'appeals', 'other')),
   priority text not null default 'supporting' check (priority in ('core', 'supporting', 'ignore')),
   title text not null,
   url text,
   body_text text,
   status text not null default 'draft' check (status in ('draft', 'active', 'archived', 'failed_capture')),
   notes text,
+  last_checked_at timestamptz,
+  last_reviewed_at timestamptz,
   captured_at timestamptz,
   reviewed_at timestamptz,
   archived_at timestamptz,
@@ -96,18 +98,104 @@ create table if not exists sources (
   updated_at timestamptz not null default now()
 );
 
+alter table if exists sources add column if not exists body_text text;
+alter table if exists sources add column if not exists notes text;
+alter table if exists sources add column if not exists last_checked_at timestamptz;
+alter table if exists sources add column if not exists last_reviewed_at timestamptz;
+alter table if exists sources add column if not exists captured_at timestamptz;
+alter table if exists sources add column if not exists reviewed_at timestamptz;
+alter table if exists sources add column if not exists archived_at timestamptz;
+alter table if exists sources add column if not exists updated_at timestamptz not null default now();
+
+update sources
+set source_type = case source_type
+  when 'policy' then 'terms'
+  when 'help_center' then 'other'
+  when 'payout_policy' then 'payout_terms'
+  when 'account_policy' then 'account_limits'
+  when 'api_policy' then 'developer_api'
+  when 'appeals_policy' then 'appeals'
+  else source_type
+end
+where source_type in (
+  'policy',
+  'help_center',
+  'payout_policy',
+  'account_policy',
+  'api_policy',
+  'appeals_policy'
+);
+
+update sources
+set last_checked_at = captured_at
+where last_checked_at is null
+  and captured_at is not null;
+
+update sources
+set last_reviewed_at = reviewed_at
+where last_reviewed_at is null
+  and reviewed_at is not null;
+
+alter table if exists sources drop constraint if exists sources_source_type_check;
+alter table if exists sources drop constraint if exists sources_priority_check;
+alter table if exists sources drop constraint if exists sources_status_check;
+
+alter table if exists sources
+  add constraint sources_source_type_check
+    check (source_type in ('terms', 'user_agreement', 'payment_terms', 'payout_terms', 'account_limits', 'kyc_verification', 'refund_chargeback', 'developer_api', 'privacy_data', 'pricing_fees', 'appeals', 'other'));
+
+alter table if exists sources
+  add constraint sources_priority_check
+    check (priority in ('core', 'supporting', 'ignore'));
+
+alter table if exists sources
+  add constraint sources_status_check
+    check (status in ('draft', 'active', 'archived', 'failed_capture'));
+
 create unique index if not exists idx_sources_platform_url_unique
   on sources (platform_id, lower(url))
   where url is not null;
 create index if not exists idx_sources_platform_id on sources (platform_id);
 create index if not exists idx_sources_status on sources (status);
 create index if not exists idx_sources_priority on sources (priority);
+create index if not exists idx_sources_source_type on sources (source_type);
+create index if not exists idx_sources_last_checked_at on sources (last_checked_at desc nulls last);
+create index if not exists idx_sources_last_reviewed_at on sources (last_reviewed_at desc nulls last);
 create index if not exists idx_sources_reviewed_at on sources (reviewed_at desc nulls last);
 
 drop trigger if exists trg_polibrawl_sources_updated_at on sources;
 create trigger trg_polibrawl_sources_updated_at
 before update on sources
 for each row execute function set_polibrawl_updated_at();
+
+create table if not exists source_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  source_id uuid not null references sources(id) on delete restrict,
+  capture_method text not null check (capture_method in ('fetch', 'paste')),
+  original_url text,
+  final_url text,
+  http_status integer,
+  content_type text,
+  content_hash text,
+  title text,
+  extracted_text text,
+  text_preview text,
+  word_count integer,
+  byte_size integer,
+  captured_at timestamptz not null default now(),
+  capture_status text not null check (capture_status in ('succeeded', 'failed')),
+  error_message text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_source_snapshots_source_id
+  on source_snapshots (source_id);
+create index if not exists idx_source_snapshots_capture_status
+  on source_snapshots (capture_status);
+create index if not exists idx_source_snapshots_captured_at
+  on source_snapshots (captured_at desc);
+create index if not exists idx_source_snapshots_source_captured_at
+  on source_snapshots (source_id, captured_at desc, created_at desc);
 
 create table if not exists red_flag_candidates (
   id uuid primary key default gen_random_uuid(),

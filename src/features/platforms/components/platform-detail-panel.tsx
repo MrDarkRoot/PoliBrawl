@@ -16,14 +16,62 @@ import { cn } from "@/lib/utils";
 import type { Platform } from "@/types/polibrawl";
 
 const futureModules = [
-  "Sources",
-  "Candidates",
-  "Red Flags",
-  "Evidence",
-  "Survival Notes",
-  "Backup Options",
-  "Checklist",
-  "Publisher Preview",
+  {
+    label: "Sources",
+    href: (platformId: string) => `/admin/sources?platform_id=${platformId}`,
+    disabled: false,
+    helper: "Open the active Source Registry for this platform.",
+    buttonLabel: "Open",
+  },
+  {
+    label: "Candidates",
+    href: () => "#",
+    disabled: true,
+    helper: "Available in a later sprint.",
+    buttonLabel: "Later",
+  },
+  {
+    label: "Red Flags",
+    href: () => "#",
+    disabled: true,
+    helper: "Available in a later sprint.",
+    buttonLabel: "Later",
+  },
+  {
+    label: "Evidence",
+    href: () => "#",
+    disabled: true,
+    helper: "Available in a later sprint.",
+    buttonLabel: "Later",
+  },
+  {
+    label: "Survival Notes",
+    href: () => "#",
+    disabled: true,
+    helper: "Available in a later sprint.",
+    buttonLabel: "Later",
+  },
+  {
+    label: "Backup Options",
+    href: () => "#",
+    disabled: true,
+    helper: "Available in a later sprint.",
+    buttonLabel: "Later",
+  },
+  {
+    label: "Checklist",
+    href: () => "#",
+    disabled: true,
+    helper: "Available in a later sprint.",
+    buttonLabel: "Later",
+  },
+  {
+    label: "Publisher Preview",
+    href: () => "#",
+    disabled: true,
+    helper: "Available in a later sprint.",
+    buttonLabel: "Later",
+  },
 ] as const;
 
 export function PlatformDetailPanel({ platform }: { platform: Platform }) {
@@ -129,18 +177,27 @@ export function PlatformDetailPanel({ platform }: { platform: Platform }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">
-          {futureModules.map((moduleLabel) => (
+          {futureModules.map((module) => (
             <div
-              key={moduleLabel}
+              key={module.label}
               className="flex items-center justify-between rounded-2xl border border-border/70 p-4"
             >
               <div>
-                <p className="font-medium">{moduleLabel}</p>
-                <p className="text-sm text-muted-foreground">Available in a later sprint.</p>
+                <p className="font-medium">{module.label}</p>
+                <p className="text-sm text-muted-foreground">{module.helper}</p>
               </div>
-              <Button type="button" variant="outline" disabled>
-                Later
-              </Button>
+              {module.disabled ? (
+                <Button type="button" variant="outline" disabled>
+                  {module.buttonLabel}
+                </Button>
+              ) : (
+                <Link
+                  href={module.href(platform.id)}
+                  className={cn(buttonVariants({ variant: "outline" }))}
+                >
+                  {module.buttonLabel}
+                </Link>
+              )}
             </div>
           ))}
         </CardContent>

@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 
-import { SourceForm } from "@/components/forms/source-form";
 import { PageHeader } from "@/components/shared/page-header";
-import { listPlatforms } from "@/server/repositories/platform-repository";
-import { getPolicySourceById } from "@/server/repositories/source-repository";
+import { SourceForm } from "@/features/sources/components/source-form";
+import { listPlatforms } from "@/server/polibrawl/repositories/platform.repository";
+import { findSourceById } from "@/server/polibrawl/repositories/source.repository";
 
 export default async function EditSourcePage({
   params,
@@ -12,7 +12,7 @@ export default async function EditSourcePage({
 }) {
   const { id } = await params;
   const [source, platforms] = await Promise.all([
-    getPolicySourceById(id).catch(() => null),
+    findSourceById(id).catch(() => null),
     listPlatforms().catch(() => []),
   ]);
 
@@ -23,13 +23,13 @@ export default async function EditSourcePage({
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Epic 3"
-        title="Edit source"
-        description="Maintain source metadata, tiering, and monitoring state."
+        eyebrow="Epic B"
+        title={`Edit ${source.title}`}
+        description="Update source registry metadata for this PoliBrawl source."
       />
       <SourceForm
         mode="edit"
-        initialValues={{ ...source, id: source.id }}
+        initialValues={source}
         platformOptions={platforms.map((platform) => ({
           id: platform.id,
           name: platform.name,
