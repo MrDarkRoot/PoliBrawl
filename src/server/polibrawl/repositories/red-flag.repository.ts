@@ -20,6 +20,11 @@ const redFlagColumns = [
   "reviewed_at",
   "published_at",
   "archived_at",
+  "excerpt",
+  "source_id",
+  "source_snapshot_id",
+  "keywords",
+  "primary_evidence_reference",
 ] as const;
 
 export const redFlagRepository = createCrudRepository<

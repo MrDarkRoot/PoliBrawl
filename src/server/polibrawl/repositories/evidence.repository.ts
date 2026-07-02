@@ -20,6 +20,14 @@ const evidenceColumns = [
   "reviewed_at",
   "published_at",
   "archived_at",
+  "title",
+  "source_snapshot_id",
+  "keyword_match_id",
+  "quoted_text",
+  "reviewer",
+  "confidence",
+  "display_order",
+  "internal_notes",
 ] as const;
 
 export const evidenceRepository = createCrudRepository<

@@ -16,6 +16,9 @@ const survivalNoteColumns = [
   "status",
   "published_at",
   "archived_at",
+  "title",
+  "body",
+  "display_order",
 ] as const;
 
 export const survivalNoteRepository = createCrudRepository<

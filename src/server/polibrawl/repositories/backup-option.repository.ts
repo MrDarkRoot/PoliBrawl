@@ -18,6 +18,11 @@ const backupOptionColumns = [
   "status",
   "published_at",
   "archived_at",
+  "red_flag_id",
+  "name",
+  "description",
+  "difficulty",
+  "cost_level",
 ] as const;
 
 export const backupOptionRepository = createCrudRepository<

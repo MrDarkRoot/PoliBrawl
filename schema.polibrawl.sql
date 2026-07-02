@@ -323,6 +323,7 @@ alter table if exists red_flags add column if not exists source_snapshot_id uuid
 alter table if exists red_flags add column if not exists keywords text[] not null default '{}'::text[];
 alter table if exists red_flags add column if not exists primary_evidence_reference text;
 
+alter table if exists red_flag_candidates drop constraint if exists fk_red_flag_candidates_approved_red_flag_id;
 alter table if exists red_flag_candidates
   add constraint fk_red_flag_candidates_approved_red_flag_id
   foreign key (approved_red_flag_id) references red_flags(id) on delete set null;
@@ -580,3 +581,38 @@ drop trigger if exists trg_polibrawl_corrections_updated_at on corrections;
 create trigger trg_polibrawl_corrections_updated_at
 before update on corrections
 for each row execute function set_polibrawl_updated_at();
+
+-- Sprint 6 Additions
+
+-- Evidence
+alter table if exists evidence add column if not exists title text;
+alter table if exists evidence add column if not exists source_snapshot_id uuid references source_snapshots(id) on delete restrict;
+alter table if exists evidence add column if not exists keyword_match_id uuid references keyword_matches(id) on delete set null;
+alter table if exists evidence add column if not exists quoted_text text;
+alter table if exists evidence add column if not exists reviewer uuid;
+alter table if exists evidence add column if not exists confidence text;
+alter table if exists evidence add column if not exists display_order integer default 0;
+alter table if exists evidence add column if not exists internal_notes text;
+
+-- Survival Notes
+alter table if exists survival_notes add column if not exists title text;
+alter table if exists survival_notes add column if not exists body text;
+alter table if exists survival_notes add column if not exists display_order integer default 0;
+
+-- Backup Options
+alter table if exists backup_options add column if not exists red_flag_id uuid references red_flags(id) on delete restrict;
+alter table if exists backup_options add column if not exists name text;
+alter table if exists backup_options add column if not exists description text;
+alter table if exists backup_options add column if not exists difficulty text;
+alter table if exists backup_options add column if not exists cost_level text;
+alter table if exists backup_options alter column platform_id drop not null; -- Soften requirement if tying to red_flag_id
+
+-- Checklists
+alter table if exists checklists add column if not exists red_flag_id uuid references red_flags(id) on delete restrict;
+alter table if exists checklists alter column platform_id drop not null;
+
+-- Checklist Items
+alter table if exists checklist_items add column if not exists text text;
+alter table if exists checklist_items add column if not exists required boolean not null default false;
+alter table if exists checklist_items add column if not exists display_order integer default 0;
+

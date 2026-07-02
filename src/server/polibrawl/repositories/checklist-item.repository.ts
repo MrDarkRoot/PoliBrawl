@@ -16,6 +16,9 @@ const checklistItemColumns = [
   "status",
   "published_at",
   "archived_at",
+  "text",
+  "required",
+  "display_order",
 ] as const;
 
 export const checklistItemRepository = createCrudRepository<

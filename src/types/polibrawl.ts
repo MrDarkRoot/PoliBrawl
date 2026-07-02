@@ -310,6 +310,14 @@ export type EvidenceItem = BaseRecord & {
   status: EvidenceStatus;
   reviewed_at: IsoDatetime | null;
   published_at: IsoDatetime | null;
+  title?: string | null;
+  source_snapshot_id?: Uuid | null;
+  keyword_match_id?: Uuid | null;
+  quoted_text?: string | null;
+  reviewer?: Uuid | null;
+  confidence?: string | null;
+  display_order?: number;
+  internal_notes?: string | null;
 };
 
 export type SurvivalNote = BaseRecord & {
@@ -319,10 +327,13 @@ export type SurvivalNote = BaseRecord & {
   priority: NotePriority;
   status: SurvivalNoteStatus;
   published_at: IsoDatetime | null;
+  title?: string | null;
+  body?: string | null;
+  display_order?: number;
 };
 
 export type BackupOption = BaseRecord & {
-  platform_id: Uuid;
+  platform_id: Uuid | null;
   label: string;
   option_type: BackupOptionType;
   summary: string;
@@ -330,14 +341,20 @@ export type BackupOption = BaseRecord & {
   link_url: string | null;
   status: BackupOptionStatus;
   published_at: IsoDatetime | null;
+  red_flag_id?: Uuid | null;
+  name?: string | null;
+  description?: string | null;
+  difficulty?: string | null;
+  cost_level?: string | null;
 };
 
 export type Checklist = BaseRecord & {
-  platform_id: Uuid;
+  platform_id: Uuid | null;
   title: string;
   intro: string | null;
   status: ChecklistStatus;
   published_at: IsoDatetime | null;
+  red_flag_id?: Uuid | null;
 };
 
 export type ChecklistItem = BaseRecord & {
@@ -347,6 +364,9 @@ export type ChecklistItem = BaseRecord & {
   sort_order: number;
   status: ChecklistItemStatus;
   published_at: IsoDatetime | null;
+  text?: string | null;
+  required?: boolean;
+  display_order?: number;
 };
 
 export type ReviewRequest = BaseRecord & {

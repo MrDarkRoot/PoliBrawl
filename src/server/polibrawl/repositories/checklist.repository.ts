@@ -15,6 +15,7 @@ const checklistColumns = [
   "status",
   "published_at",
   "archived_at",
+  "red_flag_id",
 ] as const;
 
 export const checklistRepository = createCrudRepository<

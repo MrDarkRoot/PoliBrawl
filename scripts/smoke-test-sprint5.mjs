@@ -11,7 +11,7 @@ function loadEnv() {
         process.env[match[1].trim()] = match[2].trim().replace(/^["']|["']$/g, "");
       }
     }
-  } catch (e) {
+  } catch {
     console.log("No .env file found or error reading it. Assuming env is already set.");
   }
 }
@@ -143,7 +143,7 @@ const [cMergeTarget] = await q(
   [platformId, sourceId, cMergeSource.category, "Merge Target", "Target Excerpt", ['target-kw']]
 );
 
-const reviewerId = "00000000-0000-0000-0000-000000000000"; // Dummy ID doesn't need FK
+// Reviewer ID would go here, removed since unused
 
 console.log("\n--- Testing Workflow ---");
 
