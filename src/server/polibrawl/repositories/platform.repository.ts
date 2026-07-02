@@ -1,5 +1,6 @@
 import "server-only";
 
+import { queryMany, queryOne } from "@/server/polibrawl/db";
 import { createCrudRepository } from "@/server/polibrawl/repositories/base.repository";
 import type {
   CreatePlatformDto,
@@ -15,6 +16,7 @@ const platformColumns = [
   "status",
   "website_url",
   "summary",
+  "main_level",
   "disclaimer_text",
   "internal_notes",
   "last_reviewed_at",
@@ -41,7 +43,51 @@ export const platformRepository = createCrudRepository<
   },
 });
 
-export const listPlatforms = platformRepository.list;
+export async function listPlatforms(filters: PlatformListFilters = {}) {
+  const values: unknown[] = [];
+  const clauses: string[] = [];
+
+  if (filters.search) {
+    values.push(`%${filters.search}%`);
+    clauses.push(`(name ilike $${values.length} or slug ilike $${values.length})`);
+  }
+
+  if (filters.category) {
+    values.push(filters.category);
+    clauses.push(`category = $${values.length}`);
+  }
+
+  if (filters.status) {
+    values.push(filters.status);
+    clauses.push(`status = $${values.length}`);
+  }
+
+  if (filters.slug) {
+    values.push(filters.slug);
+    clauses.push(`slug = $${values.length}`);
+  }
+
+  if (filters.id) {
+    values.push(filters.id);
+    clauses.push(`id = $${values.length}`);
+  }
+
+  const whereClause = clauses.length > 0 ? `where ${clauses.join(" and ")}` : "";
+
+  return queryMany<Platform>(
+    `select * from platforms ${whereClause} order by updated_at desc`,
+    values,
+  );
+}
+
+export async function countPlatforms() {
+  const result = await queryOne<{ count: string }>(
+    "select count(*)::text as count from platforms",
+  );
+
+  return Number(result?.count ?? 0);
+}
+
 export const findPlatformById = platformRepository.findById;
 export const findPlatformBySlug = platformRepository.findBySlug;
 export const findPlatform = platformRepository.findOne;

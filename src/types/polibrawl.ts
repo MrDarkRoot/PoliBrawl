@@ -150,6 +150,7 @@ export type Platform = BaseRecord & {
   status: PlatformStatus;
   website_url: string;
   summary: string | null;
+  main_level: RedFlagLevel | null;
   disclaimer_text: string | null;
   internal_notes: string | null;
   last_reviewed_at: IsoDatetime | null;
@@ -398,7 +399,9 @@ export type ListQueryOptions = {
 
 export type PlatformListFilters = Partial<
   Pick<Platform, "id" | "slug" | "status" | "category">
->;
+> & {
+  search?: string;
+};
 export type SourceListFilters = Partial<
   Pick<Source, "id" | "platform_id" | "status" | "priority" | "source_type">
 >;

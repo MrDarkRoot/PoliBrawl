@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  redFlagLevels,
   platformCategories,
   platformStatuses,
 } from "@/types/polibrawl";
@@ -18,6 +19,7 @@ export const createPlatformSchema = z.object({
   status: z.enum(platformStatuses).default("draft"),
   website_url: z.string().url(),
   summary: nullableTrimmedString(5000),
+  main_level: z.enum(redFlagLevels).nullable().optional(),
   disclaimer_text: nullableTrimmedString(5000),
   internal_notes: nullableTrimmedString(10000),
   last_reviewed_at: isoDatetimeSchema.nullable().optional(),

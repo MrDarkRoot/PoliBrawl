@@ -18,6 +18,7 @@ create table if not exists platforms (
   status text not null default 'draft' check (status in ('draft', 'published', 'needs_review', 'archived')),
   website_url text not null,
   summary text,
+  main_level text check (main_level in ('low', 'medium', 'high', 'critical', 'unknown')),
   disclaimer_text text,
   internal_notes text,
   last_reviewed_at timestamptz,
@@ -29,9 +30,48 @@ create table if not exists platforms (
     check (published_at is null or status = 'published')
 );
 
+alter table if exists platforms add column if not exists summary text;
+alter table if exists platforms add column if not exists main_level text;
+alter table if exists platforms add column if not exists disclaimer_text text;
+alter table if exists platforms add column if not exists internal_notes text;
+alter table if exists platforms add column if not exists last_reviewed_at timestamptz;
+alter table if exists platforms add column if not exists published_at timestamptz;
+alter table if exists platforms add column if not exists archived_at timestamptz;
+alter table if exists platforms add column if not exists updated_at timestamptz not null default now();
+
+alter table if exists platforms drop constraint if exists platforms_category_check;
+alter table if exists platforms drop constraint if exists platforms_status_check;
+alter table if exists platforms drop constraint if exists platforms_main_level_check;
+alter table if exists platforms drop constraint if exists platforms_published_status_check;
+
+update platforms
+set category = 'saas_developer'
+where category = 'saas_vendor';
+
+update platforms
+set status = 'published'
+where status = 'active';
+
+alter table if exists platforms
+  add constraint platforms_category_check
+    check (category in ('payment', 'creator_freelance', 'saas_developer'));
+
+alter table if exists platforms
+  add constraint platforms_status_check
+    check (status in ('draft', 'published', 'needs_review', 'archived'));
+
+alter table if exists platforms
+  add constraint platforms_main_level_check
+    check (main_level is null or main_level in ('low', 'medium', 'high', 'critical', 'unknown'));
+
+alter table if exists platforms
+  add constraint platforms_published_status_check
+    check (published_at is null or status = 'published');
+
 create unique index if not exists idx_platforms_slug_unique on platforms (slug);
 create index if not exists idx_platforms_status on platforms (status);
 create index if not exists idx_platforms_category on platforms (category);
+create index if not exists idx_platforms_main_level on platforms (main_level);
 create index if not exists idx_platforms_last_reviewed_at on platforms (last_reviewed_at desc nulls last);
 
 drop trigger if exists trg_polibrawl_platforms_updated_at on platforms;

@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { PlatformForm } from "@/components/forms/platform-form";
 import { PageHeader } from "@/components/shared/page-header";
-import { getPlatformById } from "@/server/repositories/platform-repository";
+import { PlatformForm } from "@/features/platforms/components/platform-form";
+import { findPlatformById } from "@/server/polibrawl/repositories/platform.repository";
 
 export default async function EditPlatformPage({
   params,
@@ -10,7 +10,7 @@ export default async function EditPlatformPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const platform = await getPlatformById(id).catch(() => null);
+  const platform = await findPlatformById(id).catch(() => null);
 
   if (!platform) {
     notFound();
@@ -19,9 +19,9 @@ export default async function EditPlatformPage({
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Epic 1"
+        eyebrow="Epic B"
         title={`Edit ${platform.name}`}
-        description="Update the platform metadata used by discovery, source registry, and review workflows."
+        description="Update the platform metadata used by the new PoliBrawl Platform Registry."
       />
       <PlatformForm mode="edit" initialValues={platform} />
     </div>
