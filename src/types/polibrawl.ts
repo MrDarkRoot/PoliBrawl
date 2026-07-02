@@ -57,10 +57,10 @@ export const redFlagLevels = [
 
 export const redFlagCandidateStatuses = [
   "pending",
-  "accepted",
-  "rejected_noise",
-  "duplicate",
-  "needs_more_review",
+  "reviewing",
+  "approved",
+  "rejected",
+  "merged",
 ] as const;
 
 export const redFlagStatuses = [
@@ -239,6 +239,23 @@ export type RedFlagCandidate = BaseRecord & {
   reviewer_notes: string | null;
   status: RedFlagCandidateStatus;
   reviewed_at: IsoDatetime | null;
+  review_status: string | null;
+  review_notes: string | null;
+  reviewed_by: Uuid | null;
+  merged_into_candidate_id: Uuid | null;
+  approved_red_flag_id: Uuid | null;
+  reject_reason: string | null;
+};
+
+export type CandidateReviewHistory = {
+  id: Uuid;
+  candidate_id: Uuid;
+  action: string;
+  old_status: string | null;
+  new_status: string | null;
+  reviewer: Uuid | null;
+  note: string | null;
+  created_at: IsoDatetime;
 };
 
 export type KeywordMatchStatus = "pending" | "grouped" | "ignored" | "promoted";
@@ -275,6 +292,11 @@ export type RedFlag = BaseRecord & {
   status: RedFlagStatus;
   reviewed_at: IsoDatetime | null;
   published_at: IsoDatetime | null;
+  excerpt: string | null;
+  source_id: Uuid | null;
+  source_snapshot_id: Uuid | null;
+  keywords: string[];
+  primary_evidence_reference: string | null;
 };
 
 export type EvidenceItem = BaseRecord & {

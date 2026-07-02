@@ -154,6 +154,12 @@ export async function createCandidateFromKeywordMatches(input: {
     reviewer_notes: null,
     status: "pending",
     reviewed_at: null,
+    review_status: null,
+    review_notes: null,
+    reviewed_by: null,
+    merged_into_candidate_id: null,
+    approved_red_flag_id: null,
+    reject_reason: null,
   };
 
   const candidate = await createRedFlagCandidate(dto);

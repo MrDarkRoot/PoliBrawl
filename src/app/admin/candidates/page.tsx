@@ -54,19 +54,62 @@ export default async function CandidatesListPage({
 
   const statuses = [
     "pending",
-    "accepted",
-    "rejected_noise",
-    "duplicate",
-    "needs_more_review",
+    "reviewing",
+    "approved",
+    "rejected",
+    "merged",
   ];
 
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Sprint 4"
+        eyebrow="Sprint 5"
         title="Red Flag Candidates"
-        description="Scanner-generated candidates pending editorial review. Nothing is published from this screen."
+        description="Candidate Review Pipeline. Pending candidates must be reviewed, approved, rejected, or merged."
       />
+
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-5">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{candidates.filter(c => c.status === 'pending').length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Reviewing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{candidates.filter(c => c.status === 'reviewing').length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Approved</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{candidates.filter(c => c.status === 'approved').length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{candidates.filter(c => c.status === 'rejected').length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Merged</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{candidates.filter(c => c.status === 'merged').length}</div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Filters */}
       <form className="flex flex-wrap gap-3 text-sm">
@@ -131,8 +174,10 @@ export default async function CandidatesListPage({
             <Card key={c.id}>
               <CardHeader className="pb-2">
                 <div className="flex flex-wrap items-start justify-between gap-2">
-                  <CardTitle className="text-sm font-semibold">
-                    {c.headline}
+                  <CardTitle className="text-sm font-semibold hover:underline">
+                    <Link href={`/admin/candidates/${c.id}`}>
+                      {c.headline}
+                    </Link>
                   </CardTitle>
                   <StatusBadge value={c.status} />
                 </div>

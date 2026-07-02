@@ -247,11 +247,17 @@ create table if not exists red_flag_candidates (
   matched_keywords text[] not null default '{}'::text[],
   confidence_note text,
   reviewer_notes text,
-  status text not null default 'pending' check (status in ('pending', 'accepted', 'rejected_noise', 'duplicate', 'needs_more_review')),
+  status text not null default 'pending' check (status in ('pending', 'reviewing', 'approved', 'rejected', 'merged')),
   reviewed_at timestamptz,
   archived_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  review_status text,
+  review_notes text,
+  reviewed_by uuid,
+  merged_into_candidate_id uuid references red_flag_candidates(id) on delete set null,
+  approved_red_flag_id uuid, -- will reference red_flags(id) later
+  reject_reason text
 );
 
 create index if not exists idx_red_flag_candidates_platform_id on red_flag_candidates (platform_id);
@@ -259,10 +265,33 @@ create index if not exists idx_red_flag_candidates_source_id on red_flag_candida
 create index if not exists idx_red_flag_candidates_status on red_flag_candidates (status);
 create index if not exists idx_red_flag_candidates_category on red_flag_candidates (category);
 
+alter table if exists red_flag_candidates drop constraint if exists red_flag_candidates_status_check;
+alter table if exists red_flag_candidates add constraint red_flag_candidates_status_check check (status in ('pending', 'reviewing', 'approved', 'rejected', 'merged'));
+
+alter table if exists red_flag_candidates add column if not exists review_status text;
+alter table if exists red_flag_candidates add column if not exists review_notes text;
+alter table if exists red_flag_candidates add column if not exists reviewed_by uuid;
+alter table if exists red_flag_candidates add column if not exists merged_into_candidate_id uuid references red_flag_candidates(id) on delete set null;
+alter table if exists red_flag_candidates add column if not exists approved_red_flag_id uuid;
+alter table if exists red_flag_candidates add column if not exists reject_reason text;
+
 drop trigger if exists trg_polibrawl_red_flag_candidates_updated_at on red_flag_candidates;
 create trigger trg_polibrawl_red_flag_candidates_updated_at
 before update on red_flag_candidates
 for each row execute function set_polibrawl_updated_at();
+
+create table if not exists candidate_review_history (
+  id uuid primary key default gen_random_uuid(),
+  candidate_id uuid not null references red_flag_candidates(id) on delete cascade,
+  action text not null,
+  old_status text,
+  new_status text,
+  reviewer uuid,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_candidate_review_history_candidate_id on candidate_review_history (candidate_id);
 
 create table if not exists red_flags (
   id uuid primary key default gen_random_uuid(),
@@ -279,9 +308,24 @@ create table if not exists red_flags (
   archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  excerpt text,
+  source_id uuid references sources(id) on delete restrict,
+  source_snapshot_id uuid references source_snapshots(id) on delete restrict,
+  keywords text[] not null default '{}'::text[],
+  primary_evidence_reference text,
   constraint red_flags_published_status_check
     check (published_at is null or status = 'published')
 );
+
+alter table if exists red_flags add column if not exists excerpt text;
+alter table if exists red_flags add column if not exists source_id uuid references sources(id) on delete restrict;
+alter table if exists red_flags add column if not exists source_snapshot_id uuid references source_snapshots(id) on delete restrict;
+alter table if exists red_flags add column if not exists keywords text[] not null default '{}'::text[];
+alter table if exists red_flags add column if not exists primary_evidence_reference text;
+
+alter table if exists red_flag_candidates
+  add constraint fk_red_flag_candidates_approved_red_flag_id
+  foreign key (approved_red_flag_id) references red_flags(id) on delete set null;
 
 create unique index if not exists idx_red_flags_platform_slug_unique on red_flags (platform_id, slug);
 create index if not exists idx_red_flags_platform_id on red_flags (platform_id);
