@@ -4,6 +4,8 @@ This document is the implementation handoff for the next Codex build task.
 
 Epic B should build the internal CMS for the Red Flag Survival MVP without expanding the old legal-document product model and without building the public site yet.
 
+*Note: Epic B implementation is complete through Sprint 6.5. Sprint 7 must treat Epic B schema as a stable contract.*
+
 ## Prerequisites
 
 Before Epic B coding, read the technical skeleton docs:

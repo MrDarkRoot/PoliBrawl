@@ -31,6 +31,14 @@ Goal:
 - evidence builder
 - publisher
 
+## Epic B.5 — Epic B Schema Freeze
+
+Status: done
+
+Goal:
+- freeze the Epic B schema as the stable CMS contract before building public delivery
+- perform schema/documentation audit + contract hardening only
+
 ## Epic C — Public Survival Pages
 
 - landing

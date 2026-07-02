@@ -626,7 +626,7 @@ CREATE TABLE IF NOT EXISTS platform_survival_pages (
   title text NOT NULL,
   summary text,
   main_level text,
-  status text NOT NULL DEFAULT 'draft',
+  status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'needs_review', 'ready_for_publish', 'archived')),
   editorial_intro text,
   survival_summary text,
   disclaimer_note text,
@@ -638,6 +638,11 @@ CREATE TABLE IF NOT EXISTS platform_survival_pages (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS platform_survival_pages_platform_id_slug_idx ON platform_survival_pages(platform_id, slug);
+
+DROP TRIGGER IF EXISTS trg_polibrawl_platform_survival_pages_updated_at ON platform_survival_pages;
+CREATE TRIGGER trg_polibrawl_platform_survival_pages_updated_at
+BEFORE UPDATE ON platform_survival_pages
+FOR EACH ROW EXECUTE FUNCTION set_polibrawl_updated_at();
 
 CREATE TABLE IF NOT EXISTS platform_survival_page_red_flags (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -654,3 +659,7 @@ CREATE INDEX IF NOT EXISTS platform_survival_page_red_flags_page_id_idx ON platf
 CREATE INDEX IF NOT EXISTS platform_survival_page_red_flags_red_flag_id_idx ON platform_survival_page_red_flags(red_flag_id);
 CREATE INDEX IF NOT EXISTS platform_survival_page_red_flags_display_order_idx ON platform_survival_page_red_flags(display_order);
 
+DROP TRIGGER IF EXISTS trg_polibrawl_platform_survival_page_red_flags_updated_at ON platform_survival_page_red_flags;
+CREATE TRIGGER trg_polibrawl_platform_survival_page_red_flags_updated_at
+BEFORE UPDATE ON platform_survival_page_red_flags
+FOR EACH ROW EXECUTE FUNCTION set_polibrawl_updated_at();

@@ -25,6 +25,8 @@ Do not continue the old legal-document / clause / signal pipeline architecture.
 
 ## Document Map
 
+- [EPIC_B_SCHEMA_FREEZE.md](EPIC_B_SCHEMA_FREEZE.md): The stable Epic B schema contract (frozen before Sprint 7).
+
 - [00_PROJECT_CONTEXT.md](00_PROJECT_CONTEXT.md): founder constraints, pivot context, and anti-overbuilding rules.
 - [01_PRODUCT_OVERVIEW.md](01_PRODUCT_OVERVIEW.md): product definition, target users, product unit, and page anatomy.
 - [02_MVP_SCOPE.md](02_MVP_SCOPE.md): strict MVP freeze for what is in and out.

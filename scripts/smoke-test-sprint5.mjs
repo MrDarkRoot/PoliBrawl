@@ -156,10 +156,11 @@ async function updateStatus(id, newStatus, reason = null) {
 // 1. Approve
 console.log(`Approving ${cApprove.id}...`);
 await updateStatus(cApprove.id, 'approved', 'Looks good');
-const [redFlag] = await q(
-  `insert into red_flags (platform_id, slug, title, category, level, summary, why_it_matters, status) values ($1,$2,$3,$4,$5,$6,$7,'draft') returning id, status`,
-  [platformId, 'slug-123', cApprove.headline, cApprove.category, 'medium', 'sum', 'why']
-);
+  const randomSlug = 'slug-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+  const [redFlag] = await q(
+    `insert into red_flags (platform_id, slug, title, category, level, summary, why_it_matters, status) values ($1,$2,$3,$4,$5,$6,$7,'draft') returning id, status`,
+    [platformId, randomSlug, cApprove.headline, cApprove.category, 'medium', 'sum', 'why']
+  );
 await q(`update red_flag_candidates set approved_red_flag_id=$1 where id=$2`, [redFlag.id, cApprove.id]);
 
 if (redFlag.status !== 'draft') {
