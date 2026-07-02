@@ -247,6 +247,32 @@ export type RedFlagCandidate = BaseRecord & {
   reject_reason: string | null;
 };
 
+export type PlatformSurvivalPageStatus = "draft" | "needs_review" | "ready_for_publish" | "archived";
+
+export type PlatformSurvivalPage = BaseRecord & {
+  platform_id: Uuid;
+  slug: string;
+  title: string;
+  summary: string | null;
+  main_level: string | null;
+  status: PlatformSurvivalPageStatus;
+  editorial_intro: string | null;
+  survival_summary: string | null;
+  disclaimer_note: string | null;
+  last_reviewed_at: IsoDatetime | null;
+  ready_for_publish: boolean;
+};
+
+export type PlatformSurvivalPageRedFlag = {
+  id: Uuid;
+  page_id: Uuid;
+  red_flag_id: Uuid;
+  display_order: number;
+  section_label: string | null;
+  created_at: IsoDatetime;
+  updated_at: IsoDatetime;
+};
+
 export type CandidateReviewHistory = {
   id: Uuid;
   candidate_id: Uuid;
@@ -493,13 +519,19 @@ export type PublishChecklistDto = {
 };
 
 export type CreateChecklistItemDto = Omit<ChecklistItem, "id" | "created_at" | "updated_at" | "archived_at" | "published_at"> & {
-  published_at?: IsoDatetime | null;
+  checklist_id: Uuid;
+  text?: string | null;
+  required?: boolean;
+  status?: ChecklistItemStatus;
 };
 export type UpdateChecklistItemDto = Partial<CreateChecklistItemDto>;
 export type PublishChecklistItemDto = {
   status: "published";
   published_at?: IsoDatetime | null;
 };
+
+export type CreatePlatformSurvivalPageDto = Omit<PlatformSurvivalPage, "id" | "created_at" | "updated_at" | "archived_at">;
+export type CreatePlatformSurvivalPageRedFlagDto = Omit<PlatformSurvivalPageRedFlag, "id" | "created_at" | "updated_at">;
 
 export type CreateReviewRequestDto = Omit<ReviewRequest, "id" | "created_at" | "updated_at" | "archived_at" | "reviewed_at"> & {
   reviewed_at?: IsoDatetime | null;

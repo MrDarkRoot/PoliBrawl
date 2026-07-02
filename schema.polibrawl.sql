@@ -616,3 +616,41 @@ alter table if exists checklist_items add column if not exists text text;
 alter table if exists checklist_items add column if not exists required boolean not null default false;
 alter table if exists checklist_items add column if not exists display_order integer default 0;
 
+
+-- Sprint 6.5: Platform Survival Pages
+
+CREATE TABLE IF NOT EXISTS platform_survival_pages (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  platform_id uuid NOT NULL REFERENCES platforms(id) ON DELETE RESTRICT,
+  slug text NOT NULL,
+  title text NOT NULL,
+  summary text,
+  main_level text,
+  status text NOT NULL DEFAULT 'draft',
+  editorial_intro text,
+  survival_summary text,
+  disclaimer_note text,
+  last_reviewed_at timestamptz,
+  ready_for_publish boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  archived_at timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS platform_survival_pages_platform_id_slug_idx ON platform_survival_pages(platform_id, slug);
+
+CREATE TABLE IF NOT EXISTS platform_survival_page_red_flags (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  page_id uuid NOT NULL REFERENCES platform_survival_pages(id) ON DELETE RESTRICT,
+  red_flag_id uuid NOT NULL REFERENCES red_flags(id) ON DELETE RESTRICT,
+  display_order integer NOT NULL DEFAULT 0,
+  section_label text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS platform_survival_page_red_flags_unique_idx ON platform_survival_page_red_flags(page_id, red_flag_id);
+CREATE INDEX IF NOT EXISTS platform_survival_page_red_flags_page_id_idx ON platform_survival_page_red_flags(page_id);
+CREATE INDEX IF NOT EXISTS platform_survival_page_red_flags_red_flag_id_idx ON platform_survival_page_red_flags(red_flag_id);
+CREATE INDEX IF NOT EXISTS platform_survival_page_red_flags_display_order_idx ON platform_survival_page_red_flags(display_order);
+
