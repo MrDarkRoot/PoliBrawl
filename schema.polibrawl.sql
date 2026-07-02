@@ -197,6 +197,46 @@ create index if not exists idx_source_snapshots_captured_at
 create index if not exists idx_source_snapshots_source_captured_at
   on source_snapshots (source_id, captured_at desc, created_at desc);
 
+-- Keyword Matches Table (Sprint 4)
+create table if not exists keyword_matches (
+  id uuid primary key default gen_random_uuid(),
+  source_snapshot_id uuid not null references source_snapshots(id) on delete restrict,
+  source_id uuid not null references sources(id) on delete restrict,
+  platform_id uuid not null references platforms(id) on delete restrict,
+  category text not null,
+  keyword text not null,
+  matched_text text not null,
+  excerpt text not null,
+  context_before text,
+  context_after text,
+  start_offset integer,
+  end_offset integer,
+  confidence integer default 1,
+  noise_score integer default 0,
+  status text not null default 'pending' check (status in ('pending','grouped','ignored','promoted')),
+  candidate_id uuid references red_flag_candidates(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_keyword_matches_source_snapshot_id on keyword_matches(source_snapshot_id);
+create index if not exists idx_keyword_matches_source_id on keyword_matches(source_id);
+create index if not exists idx_keyword_matches_platform_id on keyword_matches(platform_id);
+create index if not exists idx_keyword_matches_category on keyword_matches(category);
+create index if not exists idx_keyword_matches_status on keyword_matches(status);
+create index if not exists idx_keyword_matches_keyword on keyword_matches(keyword);
+create index if not exists idx_keyword_matches_candidate_id on keyword_matches(candidate_id);
+
+-- Add traceability columns to red_flag_candidates (nullable, safe migration)
+alter table if exists red_flag_candidates add column if not exists source_snapshot_id uuid references source_snapshots(id) on delete set null;
+alter table if exists red_flag_candidates add column if not exists primary_keyword_match_id uuid references keyword_matches(id) on delete set null;
+
+-- Trigger for updated_at on keyword_matches
+drop trigger if exists trg_polibrawl_keyword_matches_updated_at on keyword_matches;
+create trigger trg_polibrawl_keyword_matches_updated_at
+before update on keyword_matches
+for each row execute function set_polibrawl_updated_at();
+
 create table if not exists red_flag_candidates (
   id uuid primary key default gen_random_uuid(),
   platform_id uuid not null references platforms(id) on delete restrict,

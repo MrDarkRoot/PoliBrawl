@@ -227,6 +227,10 @@ export type SourceSnapshotDetail = SourceSnapshot & {
 export type RedFlagCandidate = BaseRecord & {
   platform_id: Uuid;
   source_id: Uuid;
+  /** Sprint 4: traceability — snapshot that generated this candidate */
+  source_snapshot_id: Uuid | null;
+  /** Sprint 4: traceability — primary keyword match that triggered creation */
+  primary_keyword_match_id: Uuid | null;
   category: RedFlagCategory;
   headline: string;
   excerpt: string;
@@ -235,6 +239,29 @@ export type RedFlagCandidate = BaseRecord & {
   reviewer_notes: string | null;
   status: RedFlagCandidateStatus;
   reviewed_at: IsoDatetime | null;
+};
+
+export type KeywordMatchStatus = "pending" | "grouped" | "ignored" | "promoted";
+
+export type KeywordMatch = {
+  id: Uuid;
+  source_snapshot_id: Uuid;
+  source_id: Uuid;
+  platform_id: Uuid;
+  category: string;
+  keyword: string;
+  matched_text: string;
+  excerpt: string;
+  context_before: string | null;
+  context_after: string | null;
+  start_offset: number | null;
+  end_offset: number | null;
+  confidence: number;
+  noise_score: number;
+  status: KeywordMatchStatus;
+  candidate_id: Uuid | null;
+  created_at: IsoDatetime;
+  updated_at: IsoDatetime;
 };
 
 export type RedFlag = BaseRecord & {
@@ -477,7 +504,7 @@ export type SourceSnapshotListFilters = Partial<
   Pick<SourceSnapshot, "id" | "source_id" | "capture_method" | "capture_status">
 >;
 export type RedFlagCandidateListFilters = Partial<
-  Pick<RedFlagCandidate, "id" | "platform_id" | "source_id" | "status" | "category">
+  Pick<RedFlagCandidate, "id" | "platform_id" | "source_id" | "source_snapshot_id" | "status" | "category">
 >;
 export type RedFlagListFilters = Partial<
   Pick<RedFlag, "id" | "platform_id" | "slug" | "status" | "category" | "level">
@@ -512,3 +539,19 @@ export type SurvivalTipSubmissionListFilters = Partial<
 export type CorrectionListFilters = Partial<
   Pick<Correction, "id" | "platform_id" | "status" | "issue_type">
 >;
+export type CreateKeywordMatchDto = Omit<KeywordMatch, "id" | "created_at" | "updated_at">;
+export type UpdateKeywordMatchDto = Partial<CreateKeywordMatchDto>;
+export type KeywordMatchListFilters = Partial<Pick<KeywordMatch, "id" | "source_snapshot_id" | "source_id" | "platform_id" | "category" | "keyword" | "status">>;
+
+/** Return shape from scanSourceSnapshotForKeywords */
+export type ScanSnapshotResult = {
+  sourceSnapshotId: Uuid;
+  sourceId: Uuid;
+  platformId: Uuid;
+  totalMatchesFound: number;
+  matchesInserted: number;
+  duplicatesSkipped: number;
+  candidatesCreated: number;
+  categoriesFound: string[];
+  warnings: string[];
+};
