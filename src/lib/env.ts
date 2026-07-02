@@ -14,7 +14,11 @@ const publicEnvSchema = envSchema.pick({
 });
 
 export function getSupabasePublicEnv() {
-  const result = publicEnvSchema.safeParse(process.env);
+  const data = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  };
+  const result = publicEnvSchema.safeParse(data);
   return result.success ? result.data : null;
 }
 
