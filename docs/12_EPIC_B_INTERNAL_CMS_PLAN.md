@@ -4,6 +4,17 @@ This document is the implementation handoff for the next Codex build task.
 
 Epic B should build the internal CMS for the Red Flag Survival MVP without expanding the old legal-document product model and without building the public site yet.
 
+## Prerequisites
+
+Before Epic B coding, read the technical skeleton docs:
+- `ARCHITECTURE.md`
+- `PROJECT_STRUCTURE.md`
+- `DESIGN_SYSTEM.md`
+- `NAVIGATION.md`
+- `STATE_MACHINE.md`
+- `NAMING_CONVENTION.md`
+- `docs/adr/`
+
 ## Ground Rules
 
 - Do not delete old code during the first Epic B pass.
@@ -310,6 +321,13 @@ Implement ONLY Epic B: Internal CMS for PoliBrawl.
 
 Before coding, read:
 - docs/README.md
+- docs/ARCHITECTURE.md
+- docs/PROJECT_STRUCTURE.md
+- docs/DESIGN_SYSTEM.md
+- docs/NAVIGATION.md
+- docs/STATE_MACHINE.md
+- docs/NAMING_CONVENTION.md
+- docs/adr/
 - docs/04_DATA_MODEL.md
 - docs/05_INTERNAL_CMS_PRD.md
 - docs/06_PIPELINE_SPEC.md
