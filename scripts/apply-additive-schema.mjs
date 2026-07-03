@@ -1,7 +1,12 @@
 import fs from "node:fs";
 import { Client } from "pg";
 
-const connectionString = "postgresql://analyst:changeme_dev@localhost:5432/polibrawl";
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error("DATABASE_URL is required to apply additive schema");
+  process.exit(1);
+}
 const sql = fs.readFileSync("scripts/sql/additive_acquisition.sql", "utf-8");
 
 async function main() {

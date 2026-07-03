@@ -323,7 +323,7 @@ export async function acquireSourceAction(
   try {
     const result = await acquireSourceSnapshot({
       sourceId: parsed.data.source_id,
-      method: parsed.data.method as any,
+      method: parsed.data.method as import("@/server/polibrawl/services/source-acquisition").AcquisitionMethod,
       url: parsed.data.url ?? undefined,
       pastedText: parsed.data.pastedText ?? undefined,
       uploadedContent: parsed.data.uploadedContent ?? undefined,

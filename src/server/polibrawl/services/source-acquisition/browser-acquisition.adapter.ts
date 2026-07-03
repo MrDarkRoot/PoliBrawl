@@ -8,6 +8,12 @@ import type { AdapterResult } from "./types";
 const MAX_RESPONSE_BYTES = 1_500_000;
 const MAX_TEXT_LENGTH = 500_000;
 
+interface PlaywrightResponse {
+  request: () => { resourceType: () => string };
+  status: () => number;
+  headers: () => Record<string, string>;
+}
+
 export async function captureByBrowser(url: string, fallbackTitle: string): Promise<AdapterResult> {
   const warnings: string[] = [];
 
@@ -25,9 +31,9 @@ export async function captureByBrowser(url: string, fallbackTitle: string): Prom
     };
   }
 
-  let chromium: any;
+  let chromium;
   try {
-    const pw = require("playwright-core");
+    const pw = await import("playwright-core");
     chromium = pw.chromium;
   } catch {
     return {
@@ -58,7 +64,7 @@ export async function captureByBrowser(url: string, fallbackTitle: string): Prom
     let httpStatus: number | null = null;
     let contentType: string | null = null;
 
-    page.on("response", (response: any) => {
+    page.on("response", (response: PlaywrightResponse) => {
       if (response.request().resourceType() === "document") {
         httpStatus = response.status();
         contentType = response.headers()["content-type"] || null;
@@ -67,13 +73,13 @@ export async function captureByBrowser(url: string, fallbackTitle: string): Prom
 
     try {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         status: "failed",
         finalUrl: page.url(),
         httpStatus,
         errorCode: "navigation_failed",
-        errorMessage: error.message || "Failed to load page in browser.",
+        errorMessage: error instanceof Error ? error.message : "Failed to load page in browser.",
         warnings,
       };
     }

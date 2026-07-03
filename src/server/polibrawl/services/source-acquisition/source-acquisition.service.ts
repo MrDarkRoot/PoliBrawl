@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { queryOne } from "@/server/polibrawl/db";
 import { findSourceById, updateSource } from "@/server/polibrawl/repositories/source.repository";
 import { createSourceSnapshot } from "@/server/polibrawl/repositories/source-snapshot.repository";
-import type { CreateSourceSnapshotDto, Uuid } from "@/types/polibrawl";
+import type { CreateSourceSnapshotDto } from "@/types/polibrawl";
 
 import type { AcquireSourceInput, AcquisitionResult, AcquisitionAttempt, AcquisitionMethod, AdapterResult } from "./types";
 import { captureByHttp } from "./http-acquisition.adapter";
