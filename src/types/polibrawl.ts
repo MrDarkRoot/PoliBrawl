@@ -87,6 +87,9 @@ export const backupOptionStatuses = ["draft", "published", "archived"] as const;
 export const checklistStatuses = ["draft", "published", "archived"] as const;
 export const checklistItemStatuses = ["draft", "published", "archived"] as const;
 
+export const researchPacketStatuses = ["draft", "ready", "archived"] as const;
+export type ResearchPacketStatus = (typeof researchPacketStatuses)[number];
+
 export const communitySubmissionStatuses = [
   "pending",
   "reviewed",
@@ -625,6 +628,65 @@ export type CorrectionListFilters = Partial<
 export type CreateKeywordMatchDto = Omit<KeywordMatch, "id" | "created_at" | "updated_at">;
 export type UpdateKeywordMatchDto = Partial<CreateKeywordMatchDto>;
 export type KeywordMatchListFilters = Partial<Pick<KeywordMatch, "id" | "source_snapshot_id" | "source_id" | "platform_id" | "category" | "keyword" | "status">>;
+
+// ─── Research Packets ────────────────────────────────────────────────────────
+
+export type ResearchPacket = {
+  id: Uuid;
+  candidate_id: Uuid;
+  platform_id: Uuid;
+  source_snapshot_id: Uuid | null;
+  category: string;
+  title: string;
+  status: ResearchPacketStatus;
+  confidence_score: number;
+  noise_score: number;
+  summary: string | null;
+  suggested_level: string | null;
+  suggested_risk: string | null;
+  scanner_observations: string | null;
+  possible_false_positives: string | null;
+  keywords_found: string[];
+  source_url: string | null;
+  generated_at: IsoDatetime;
+  created_at: IsoDatetime;
+  updated_at: IsoDatetime;
+};
+
+export type ResearchPacketEvidence = {
+  id: Uuid;
+  research_packet_id: Uuid;
+  keyword_match_id: Uuid | null;
+  excerpt: string;
+  context_before: string | null;
+  context_after: string | null;
+  source_url: string | null;
+  section_hint: string | null;
+  confidence_score: number;
+  noise_score: number;
+  display_order: number;
+  created_at: IsoDatetime;
+};
+
+export type ResearchPacketWithEvidence = ResearchPacket & {
+  evidence: ResearchPacketEvidence[];
+  platform_name?: string;
+  platform_slug?: string;
+  candidate_headline?: string;
+  candidate_status?: string;
+};
+
+export type CreateResearchPacketDto = Omit<ResearchPacket, "id" | "created_at" | "updated_at">;
+export type UpdateResearchPacketDto = Partial<Pick<ResearchPacket, "status" | "summary" | "suggested_level" | "suggested_risk" | "scanner_observations" | "possible_false_positives">>;
+
+export type CreateResearchPacketEvidenceDto = Omit<ResearchPacketEvidence, "id" | "created_at">;
+
+export type ResearchPacketListFilters = Partial<Pick<ResearchPacket, "id" | "candidate_id" | "platform_id" | "category" | "status">>;
+
+/** Extended result from scanSourceSnapshotForKeywords after packet generation */
+export type ScanSnapshotWithPacketsResult = ScanSnapshotResult & {
+  packetsGenerated: number;
+};
 
 /** Return shape from scanSourceSnapshotForKeywords */
 export type ScanSnapshotResult = {

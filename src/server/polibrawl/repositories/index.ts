@@ -13,3 +13,4 @@ export * from "@/server/polibrawl/repositories/platform-watcher.repository";
 export * from "@/server/polibrawl/repositories/experience-submission.repository";
 export * from "@/server/polibrawl/repositories/survival-tip-submission.repository";
 export * from "@/server/polibrawl/repositories/correction.repository";
+export * from "@/server/polibrawl/repositories/research-packet.repository";

@@ -13,12 +13,13 @@ import {
 } from "@/server/polibrawl/repositories/red-flag-candidate.repository";
 import { findSourceSnapshotById } from "@/server/polibrawl/repositories/source-snapshot.repository";
 import { findSourceById } from "@/server/polibrawl/repositories/source.repository";
-import type { RedFlagCandidate, ScanSnapshotResult, Uuid } from "@/types/polibrawl";
+import type { RedFlagCandidate, ScanSnapshotResult, ScanSnapshotWithPacketsResult, Uuid } from "@/types/polibrawl";
 import {
   RED_FLAG_KEYWORD_TAXONOMY,
   RED_FLAG_SUGGESTED_TITLES,
   RED_FLAG_SUGGESTED_LEVELS,
 } from "@/lib/polibrawl/red-flag-taxonomy";
+import { buildResearchPacketForCandidate } from "@/server/polibrawl/services/research-packet-builder.service";
 
 // ---------------------------------------------------------------------------
 // Noise scoring — deterministic heuristics only
@@ -171,7 +172,7 @@ export async function scanSourceSnapshotForKeywords(input: {
   const sourceId = source.id;
   const platformId = source.platform_id;
 
-  const result: ScanSnapshotResult = {
+  const result: ScanSnapshotWithPacketsResult = {
     sourceSnapshotId,
     sourceId,
     platformId,
@@ -181,6 +182,7 @@ export async function scanSourceSnapshotForKeywords(input: {
     candidatesCreated: 0,
     categoriesFound: [],
     warnings: [],
+    packetsGenerated: 0,
   };
 
   for (const [category, keywords] of Object.entries(RED_FLAG_KEYWORD_TAXONOMY)) {
@@ -295,6 +297,24 @@ export async function scanSourceSnapshotForKeywords(input: {
           candidate_id: candidate.id,
           status: "grouped",
         });
+      }
+
+      // Build Research Packet for this candidate
+      try {
+        const sourceRecord = await findSourceById(sourceId);
+        const platformName = sourceRecord?.title ?? platformId;
+        const packet = await buildResearchPacketForCandidate({
+          candidateId: candidate.id,
+          platformId,
+          platformName,
+          sourceSnapshotId,
+          sourceId,
+          category,
+        });
+        if (packet) result.packetsGenerated++;
+      } catch (packetErr) {
+        const msg = packetErr instanceof Error ? packetErr.message : "Packet build error";
+        result.warnings.push(`Research packet for category ${category}: ${msg}`);
       }
     } catch (err) {
       const msg =
