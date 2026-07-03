@@ -18,8 +18,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   saas_developer: "SaaS & Developer",
 };
 
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const platform = await getPublicPlatformBySlug(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const platform = await getPublicPlatformBySlug(slug);
   if (!platform) return { title: "Not Found | PoliBrawl" };
   const description =
     platform.summary ??
@@ -48,9 +49,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function PlatformSurvivalGuidePage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const platform = await getPublicPlatformBySlug(params.slug);
+  const { slug } = await params;
+  const platform = await getPublicPlatformBySlug(slug);
   if (!platform) notFound();
 
   const survivalPage = await getPublicSurvivalPage(platform.id);

@@ -33,8 +33,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   legal: "Legal",
 };
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  const redFlag = await getPublicRedFlag(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const redFlag = await getPublicRedFlag(id);
   if (!redFlag) return { title: "Not Found | PoliBrawl" };
   const platform = await getPublishedPlatformById(redFlag.platform_id);
   if (!platform) return { title: "Not Found | PoliBrawl" };
@@ -52,8 +53,9 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
   };
 }
 
-export default async function PublicRedFlagPage({ params }: { params: { id: string } }) {
-  const redFlag = await getPublicRedFlag(params.id);
+export default async function PublicRedFlagPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const redFlag = await getPublicRedFlag(id);
   if (!redFlag) notFound();
 
   const platform = await getPublishedPlatformById(redFlag.platform_id);
