@@ -162,7 +162,7 @@ async function assertSafeHostname(hostname: string) {
   }
 }
 
-async function assertSafePublicUrl(rawUrl: string) {
+export async function assertSafePublicUrl(rawUrl: string) {
   let parsed: URL;
 
   try {

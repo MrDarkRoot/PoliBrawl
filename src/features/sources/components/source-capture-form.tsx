@@ -1,159 +1,142 @@
 "use client";
 
-import { useActionState } from "react";
-
-import {
-  captureSourceByFetchAction,
-  captureSourceByPasteAction,
-  type SourceActionState,
-} from "@/features/sources/actions/source.actions";
+import { useActionState, useState } from "react";
+import { acquireSourceAction, type SourceActionState } from "@/features/sources/actions/source.actions";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { SourceListItem } from "@/types/polibrawl";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const initialSourceActionState: SourceActionState = {
   message: null,
   fieldErrors: {},
 };
 
-function FieldError({
-  state,
-  name,
-}: {
-  state: SourceActionState;
-  name: string;
-}) {
+function FieldError({ state, name }: { state: SourceActionState; name: string }) {
   const message = state.fieldErrors[name]?.[0];
-
-  if (!message) {
-    return null;
-  }
-
+  if (!message) return null;
   return <p className="text-sm text-destructive">{message}</p>;
 }
 
 function ActionMessage({ state }: { state: SourceActionState }) {
-  if (!state.message) {
-    return null;
-  }
-
+  if (!state.message) return null;
   return <p className="text-sm text-destructive">{state.message}</p>;
 }
 
 export function SourceCaptureForm({ source }: { source: SourceListItem }) {
-  const [fetchState, fetchAction, isFetchPending] = useActionState(
-    captureSourceByFetchAction,
-    initialSourceActionState,
-  );
-  const [pasteState, pasteAction, isPastePending] = useActionState(
-    captureSourceByPasteAction,
-    initialSourceActionState,
-  );
+  const [state, action, isPending] = useActionState(acquireSourceAction, initialSourceActionState);
+  const [activeTab, setActiveTab] = useState("auto");
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Fetch URL</CardTitle>
-          <CardDescription>
-            Safe public URL capture only. Internal, private, and metadata addresses are
-            blocked before fetch.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={fetchAction} className="space-y-4">
-            <input type="hidden" name="source_id" value={source.id} />
-            <div className="space-y-2">
-              <Label htmlFor="url">URL</Label>
-              <Input
-                id="url"
-                name="url"
-                defaultValue={source.url ?? ""}
-                placeholder="https://example.com/policy"
-                required
-                type="url"
-              />
-              <FieldError state={fetchState} name="url" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fetch-title">Override Title</Label>
-              <Input
-                id="fetch-title"
-                name="title"
-                defaultValue={source.title}
-                placeholder="Optional snapshot title"
-              />
-              <FieldError state={fetchState} name="title" />
-            </div>
-            <ActionMessage state={fetchState} />
-            <Button type="submit" disabled={isFetchPending}>
-              {isFetchPending ? "Fetching..." : "Fetch Source"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle>Acquire Source Snapshot</CardTitle>
+        <CardDescription>
+          Choose an acquisition method to capture the content of this source.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4 grid w-full grid-cols-5">
+            <TabsTrigger value="auto">Auto</TabsTrigger>
+            <TabsTrigger value="http">HTTP Fetch</TabsTrigger>
+            <TabsTrigger value="browser">Browser</TabsTrigger>
+            <TabsTrigger value="paste">Paste</TabsTrigger>
+            <TabsTrigger value="upload">Upload</TabsTrigger>
+          </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Paste Text</CardTitle>
-          <CardDescription>
-            Use this when fetch is not practical. Pasted content stays private and is
-            stored as an admin-only snapshot.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={pasteAction} className="space-y-4">
+          <form action={action} className="space-y-4">
             <input type="hidden" name="source_id" value={source.id} />
-            <div className="space-y-2">
-              <Label htmlFor="pasted_text">Pasted Text</Label>
-              <Textarea
-                id="pasted_text"
-                name="pasted_text"
-                rows={14}
-                placeholder="Paste the policy or help-center text here."
-                required
-              />
-              <FieldError state={pasteState} name="pasted_text" />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <input type="hidden" name="method" value={activeTab === "upload" ? "upload_html" : activeTab} />
+
+            {(activeTab === "auto" || activeTab === "http" || activeTab === "browser") && (
               <div className="space-y-2">
-                <Label htmlFor="paste-title">Snapshot Title</Label>
+                <Label htmlFor="url">URL</Label>
                 <Input
-                  id="paste-title"
-                  name="title"
-                  defaultValue={source.title}
-                  placeholder="Optional snapshot title"
-                />
-                <FieldError state={pasteState} name="title" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="original_url">Original URL</Label>
-                <Input
-                  id="original_url"
-                  name="original_url"
+                  id="url"
+                  name="url"
                   defaultValue={source.url ?? ""}
                   placeholder="https://example.com/policy"
+                  required
                   type="url"
                 />
-                <FieldError state={pasteState} name="original_url" />
+                <FieldError state={state} name="url" />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {activeTab === "auto" && "Attempts HTTP Fetch first, falls back to Browser if blocked."}
+                  {activeTab === "http" && "Standard fast HTTP request. Blocked by some CDNs."}
+                  {activeTab === "browser" && "Headless Chromium capture. Slower but bypasses basic blocks."}
+                </p>
               </div>
-            </div>
-            <ActionMessage state={pasteState} />
-            <Button type="submit" disabled={isPastePending}>
-              {isPastePending ? "Saving..." : "Save Pasted Snapshot"}
+            )}
+
+            {activeTab === "paste" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="pastedText">Pasted Text</Label>
+                  <Textarea
+                    id="pastedText"
+                    name="pastedText"
+                    rows={10}
+                    placeholder="Paste the raw text here..."
+                    required
+                  />
+                  <FieldError state={state} name="pastedText" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="url-paste">Original URL (Optional)</Label>
+                  <Input
+                    id="url-paste"
+                    name="url"
+                    defaultValue={source.url ?? ""}
+                    placeholder="https://example.com/policy"
+                    type="url"
+                  />
+                  <FieldError state={state} name="url" />
+                </div>
+              </>
+            )}
+
+            {activeTab === "upload" && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="uploadedContent">HTML or Text Content</Label>
+                  <Textarea
+                    id="uploadedContent"
+                    name="uploadedContent"
+                    rows={10}
+                    placeholder="Paste the full HTML or Text content here..."
+                    required
+                  />
+                  <FieldError state={state} name="uploadedContent" />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    HTML content will be cleaned automatically.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="url-upload">Original URL (Optional)</Label>
+                  <Input
+                    id="url-upload"
+                    name="url"
+                    defaultValue={source.url ?? ""}
+                    placeholder="https://example.com/policy"
+                    type="url"
+                  />
+                  <FieldError state={state} name="url" />
+                </div>
+              </>
+            )}
+
+            <ActionMessage state={state} />
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Acquiring..." : "Acquire Snapshot"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }
+

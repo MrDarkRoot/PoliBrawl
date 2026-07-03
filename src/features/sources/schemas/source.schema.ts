@@ -62,8 +62,20 @@ export const capturePasteSourceSchema = z
   })
   .strict();
 
+export const acquireSourceSchema = z
+  .object({
+    source_id: uuidSchema,
+    method: z.enum(["auto", "http", "browser", "paste", "upload_html", "upload_text"]).default("auto"),
+    url: httpUrlSchema.nullable().optional(),
+    pastedText: z.string().trim().max(500_000).optional(),
+    uploadedContent: z.string().trim().max(500_000).optional(),
+    uploadedFilename: z.string().trim().max(300).optional(),
+  })
+  .strict();
+
 export type CreateSourceInput = z.infer<typeof createSourceSchema>;
 export type UpdateSourceInput = z.infer<typeof updateSourceSchema>;
 export type ArchiveSourceInput = z.infer<typeof archiveSourceSchema>;
 export type CaptureFetchSourceInput = z.infer<typeof captureFetchSourceSchema>;
 export type CapturePasteSourceInput = z.infer<typeof capturePasteSourceSchema>;
+export type AcquireSourceInput = z.infer<typeof acquireSourceSchema>;

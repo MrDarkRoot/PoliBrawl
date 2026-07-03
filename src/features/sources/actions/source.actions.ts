@@ -87,6 +87,10 @@ function normalizeCreateSourceInput(
     captured_at: null,
     reviewed_at: input.last_reviewed_at ?? null,
     archived_at: null,
+    preferred_acquisition_method: null,
+    last_acquisition_status: null,
+    last_acquisition_error: null,
+    acquisition_notes: null,
   };
 }
 
@@ -286,3 +290,56 @@ export async function captureSourceByPasteAction(
     return toActionState("Something went wrong while saving the pasted source.");
   }
 }
+
+import { acquireSourceSnapshot } from "@/server/polibrawl/services/source-acquisition";
+import { acquireSourceSchema } from "@/features/sources/schemas/source.schema";
+
+export async function acquireSourceAction(
+  previousState: SourceActionState = initialSourceActionState,
+  formData: FormData,
+) {
+  void previousState;
+  await requireAdminAccess();
+
+  const rawMethod = formData.get("method");
+  const rawData = {
+    source_id: formData.get("source_id"),
+    method: typeof rawMethod === "string" ? rawMethod : undefined,
+    url: normalizeNullableString(formData.get("url")),
+    pastedText: normalizeNullableString(formData.get("pastedText")),
+    uploadedContent: normalizeNullableString(formData.get("uploadedContent")),
+    uploadedFilename: normalizeNullableString(formData.get("uploadedFilename")),
+  };
+
+  const parsed = acquireSourceSchema.safeParse(rawData);
+
+  if (!parsed.success) {
+    return toActionState(
+      "Please correct the highlighted fields and try again.",
+      parsed.error.flatten().fieldErrors,
+    );
+  }
+
+  try {
+    const result = await acquireSourceSnapshot({
+      sourceId: parsed.data.source_id,
+      method: parsed.data.method as any,
+      url: parsed.data.url ?? undefined,
+      pastedText: parsed.data.pastedText ?? undefined,
+      uploadedContent: parsed.data.uploadedContent ?? undefined,
+      uploadedFilename: parsed.data.uploadedFilename ?? undefined,
+    });
+
+    revalidateSourcePaths(parsed.data.source_id);
+
+    if (result.status === "succeeded" && result.snapshotId) {
+      revalidatePath(`/admin/sources/${parsed.data.source_id}/snapshots/${result.snapshotId}`);
+      redirect(`/admin/sources/${parsed.data.source_id}/snapshots/${result.snapshotId}`);
+    } else {
+      return toActionState(result.error || "Acquisition failed for all methods.");
+    }
+  } catch (error) {
+    return toActionState(error instanceof Error ? error.message : "Something went wrong while acquiring the source.");
+  }
+}
+

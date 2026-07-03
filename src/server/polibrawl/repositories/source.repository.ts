@@ -25,6 +25,10 @@ const sourceColumns = [
   "captured_at",
   "reviewed_at",
   "archived_at",
+  "preferred_acquisition_method",
+  "last_acquisition_status",
+  "last_acquisition_error",
+  "acquisition_notes",
 ] as const;
 
 const baseSourceSelect = `

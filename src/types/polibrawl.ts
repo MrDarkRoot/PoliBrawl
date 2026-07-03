@@ -179,6 +179,10 @@ export type Source = BaseRecord & {
   last_reviewed_at: IsoDatetime | null;
   captured_at: IsoDatetime | null;
   reviewed_at: IsoDatetime | null;
+  preferred_acquisition_method: string | null;
+  last_acquisition_status: string | null;
+  last_acquisition_error: string | null;
+  acquisition_notes: string | null;
 };
 
 export type SourceSnapshot = {
@@ -199,6 +203,11 @@ export type SourceSnapshot = {
   capture_status: CaptureStatus;
   error_message: string | null;
   created_at: IsoDatetime;
+  acquisition_method?: string | null;
+  raw_content_type?: string | null;
+  raw_byte_size?: number | null;
+  extraction_method?: string | null;
+  extraction_warnings?: string[] | null;
 };
 
 export type SourceListItem = Source & {

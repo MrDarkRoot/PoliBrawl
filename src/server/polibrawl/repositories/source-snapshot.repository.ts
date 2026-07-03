@@ -24,6 +24,11 @@ const sourceSnapshotColumns = [
   "captured_at",
   "capture_status",
   "error_message",
+  "acquisition_method",
+  "raw_content_type",
+  "raw_byte_size",
+  "extraction_method",
+  "extraction_warnings",
 ] as const;
 
 function pickColumns(input: Record<string, unknown>) {
