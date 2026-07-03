@@ -99,11 +99,25 @@ create table if not exists source_candidates (
   discovery_run_id uuid references discovery_runs(id) on delete cascade,
   platform_id uuid not null references platforms(id) on delete cascade,
   url text not null,
+  canonical_url text,
   title text,
   suggested_document_type text,
   suggested_tier text,
   confidence numeric(5,4),
   detection_reason text,
+  filter_score numeric(6,2) not null default 0,
+  filter_decision text not null default 'maybe',
+  filter_reasons jsonb not null default '[]'::jsonb,
+  content_document_type text,
+  content_source_tier text,
+  content_use_for_scoring boolean,
+  content_monitor_enabled boolean,
+  content_confidence numeric(5,4),
+  content_classification_reasons jsonb not null default '[]'::jsonb,
+  content_preview_markdown text,
+  content_preview_plain_text text,
+  content_preview_final_url text,
+  content_preview_fetched_at timestamptz,
   status text not null default 'pending'
     check (status in ('pending', 'approved', 'rejected', 'needs_manual_review')),
   reviewed_by uuid references profiles(id) on delete set null,
@@ -202,6 +216,13 @@ create table if not exists policy_sources (
   current_hash text,
   last_fetched_at timestamptz,
   last_reviewed_at timestamptz,
+  content_document_type text,
+  content_source_tier text,
+  content_use_for_scoring boolean,
+  content_monitor_enabled boolean,
+  content_confidence numeric(5,4),
+  content_classification_reasons jsonb not null default '[]'::jsonb,
+  content_classified_at timestamptz,
 
   created_by uuid references profiles(id) on delete set null,
   created_at timestamptz not null default now(),
@@ -220,6 +241,33 @@ drop trigger if exists trg_policy_sources_updated_at on policy_sources;
 create trigger trg_policy_sources_updated_at
 before update on policy_sources
 for each row execute function set_updated_at();
+
+alter table if exists source_candidates add column if not exists canonical_url text;
+alter table if exists source_candidates add column if not exists filter_score numeric(6,2) not null default 0;
+alter table if exists source_candidates add column if not exists filter_decision text not null default 'maybe';
+alter table if exists source_candidates add column if not exists filter_reasons jsonb not null default '[]'::jsonb;
+alter table if exists source_candidates add column if not exists content_document_type text;
+alter table if exists source_candidates add column if not exists content_source_tier text;
+alter table if exists source_candidates add column if not exists content_use_for_scoring boolean;
+alter table if exists source_candidates add column if not exists content_monitor_enabled boolean;
+alter table if exists source_candidates add column if not exists content_confidence numeric(5,4);
+alter table if exists source_candidates add column if not exists content_classification_reasons jsonb not null default '[]'::jsonb;
+alter table if exists source_candidates add column if not exists content_preview_markdown text;
+alter table if exists source_candidates add column if not exists content_preview_plain_text text;
+alter table if exists source_candidates add column if not exists content_preview_final_url text;
+alter table if exists source_candidates add column if not exists content_preview_fetched_at timestamptz;
+
+alter table if exists policy_sources add column if not exists content_document_type text;
+alter table if exists policy_sources add column if not exists content_source_tier text;
+alter table if exists policy_sources add column if not exists content_use_for_scoring boolean;
+alter table if exists policy_sources add column if not exists content_monitor_enabled boolean;
+alter table if exists policy_sources add column if not exists content_confidence numeric(5,4);
+alter table if exists policy_sources add column if not exists content_classification_reasons jsonb not null default '[]'::jsonb;
+alter table if exists policy_sources add column if not exists content_classified_at timestamptz;
+
+create index if not exists idx_source_candidates_filter_decision on source_candidates(filter_decision);
+create index if not exists idx_source_candidates_canonical_url on source_candidates(canonical_url);
+create index if not exists idx_policy_sources_content_document_type on policy_sources(content_document_type);
 
 -- ============================================================
 -- Fetch Logs

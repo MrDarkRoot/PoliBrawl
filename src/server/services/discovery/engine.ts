@@ -4,6 +4,7 @@ import * as cheerio from "cheerio";
 import { XMLParser } from "fast-xml-parser";
 
 import { classifyCandidate } from "@/server/services/discovery/classifier";
+import { filterDiscoveryCandidates } from "@/server/services/discovery/filter-engine";
 
 const commonPolicyPaths = [
   "/terms",
@@ -213,28 +214,35 @@ export async function runDiscovery(input: { websiteUrl: string }) {
     }
   });
 
-  const candidates = Array.from(merged.entries()).map(([url, metadata]) => {
-    const classification = classifyCandidate({
+  const rawCandidates = Array.from(merged.entries()).map(([url, metadata]) => ({
+    url,
+    title: metadata.title ?? null,
+    detectionReason: metadata.detectionReason,
+    confidenceBoost: metadata.confidenceBoost ?? 0,
+    urlClassification: classifyCandidate({
       url,
       title: metadata.title,
-    });
+    }),
+  }));
 
-    return {
-      url,
-      title: metadata.title ?? null,
-      suggestedDocumentType: classification.documentType,
-      suggestedTier: classification.sourceTier,
-      confidence: Math.min(
-        0.99,
-        classification.confidence + (metadata.confidenceBoost ?? 0),
-      ),
-      detectionReason: metadata.detectionReason,
-    };
+  const filtered = filterDiscoveryCandidates({
+    candidates: rawCandidates,
   });
+
+  const candidates = filtered.candidates.map((candidate) => ({
+    ...candidate,
+    confidence: Math.min(
+      0.99,
+      candidate.confidence +
+        (rawCandidates.find((item) => item.url === candidate.url)?.confidenceBoost ?? 0),
+    ),
+  }));
 
   return {
     origin,
     robotsSitemaps: robots.sitemaps,
+    rawCandidateCount: rawCandidates.length,
+    filteredCounts: filtered.counts,
     candidates,
   };
 }

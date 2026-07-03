@@ -8,7 +8,7 @@ import {
   updateSourceCandidate,
 } from "@/server/repositories/discovery-repository";
 import {
-  createPolicySource,
+  createPolicySourceFromCandidate,
   findPolicySourceByPlatformUrl,
 } from "@/server/repositories/source-repository";
 
@@ -32,7 +32,7 @@ export async function POST(
     return NextResponse.redirect(new URL(`/admin/sources/${existing.id}`, request.url));
   }
 
-  const source = await createPolicySource({
+  const source = await createPolicySourceFromCandidate({
     platform_id: candidate.platform_id,
     title: candidate.title,
     url: candidate.url,
@@ -44,6 +44,15 @@ export async function POST(
     status: "active",
     last_reviewed_at: null,
     created_by: auth.user.id,
+    content_document_type: candidate.content_document_type,
+    content_source_tier: candidate.content_source_tier,
+    content_use_for_scoring: candidate.content_use_for_scoring,
+    content_monitor_enabled: candidate.content_monitor_enabled,
+    content_confidence: candidate.content_confidence,
+    content_classification_reasons: Array.isArray(candidate.content_classification_reasons)
+      ? candidate.content_classification_reasons
+      : [],
+    content_classified_at: candidate.content_preview_fetched_at,
   });
 
   await updateSourceCandidate(id, {

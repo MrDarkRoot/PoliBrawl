@@ -89,6 +89,46 @@ export async function createPolicySource(input: SourceInput & { created_by?: str
   return data;
 }
 
+export async function createPolicySourceFromCandidate(
+  input: SourceInput & {
+    created_by?: string | null;
+    content_document_type?: string | null;
+    content_source_tier?: string | null;
+    content_use_for_scoring?: boolean | null;
+    content_monitor_enabled?: boolean | null;
+    content_confidence?: number | null;
+    content_classification_reasons?: unknown[];
+    content_classified_at?: string | null;
+  },
+) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("policy_sources")
+    .insert({
+      ...input,
+      title: input.title || null,
+      final_url: input.final_url || null,
+      last_reviewed_at: input.last_reviewed_at ?? null,
+      created_by: input.created_by ?? null,
+      content_document_type: input.content_document_type ?? null,
+      content_source_tier: input.content_source_tier ?? null,
+      content_use_for_scoring: input.content_use_for_scoring ?? null,
+      content_monitor_enabled: input.content_monitor_enabled ?? null,
+      content_confidence: input.content_confidence ?? null,
+      content_classification_reasons:
+        input.content_classification_reasons ?? [],
+      content_classified_at: input.content_classified_at ?? null,
+    })
+    .select("*")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export async function updatePolicySource(id: string, input: Partial<SourceInput>) {
   const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
@@ -98,6 +138,73 @@ export async function updatePolicySource(id: string, input: Partial<SourceInput>
       title: input.title ?? undefined,
       final_url: input.final_url ?? undefined,
       last_reviewed_at: input.last_reviewed_at ?? undefined,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updatePolicySourceContentClassification(
+  id: string,
+  input: {
+    content_document_type: string;
+    content_source_tier: string;
+    content_use_for_scoring: boolean;
+    content_monitor_enabled: boolean;
+    content_confidence: number;
+    content_classification_reasons: string[];
+    content_classified_at: string;
+  },
+) {
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase
+    .from("policy_sources")
+    .update(input)
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function applyPolicySourceContentClassification(id: string) {
+  const supabase = createAdminSupabaseClient();
+  const { data: current, error: currentError } = await supabase
+    .from("policy_sources")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (currentError) {
+    throw currentError;
+  }
+
+  if (
+    !current.content_document_type ||
+    !current.content_source_tier ||
+    current.content_use_for_scoring === null ||
+    current.content_monitor_enabled === null
+  ) {
+    throw new Error("No content classification is available to apply.");
+  }
+
+  const { data, error } = await supabase
+    .from("policy_sources")
+    .update({
+      document_type: current.content_document_type,
+      source_tier: current.content_source_tier,
+      use_for_scoring: current.content_use_for_scoring,
+      monitor_enabled: current.content_monitor_enabled,
     })
     .eq("id", id)
     .select("*")

@@ -18,6 +18,8 @@ export const sourceCandidateStatuses = [
   "needs_manual_review",
 ] as const;
 
+export const candidateFilterDecisions = ["keep", "maybe", "drop"] as const;
+
 export const sourceStatuses = [
   "active",
   "unreachable",
@@ -103,3 +105,15 @@ export const signalConfidenceLevels = ["low", "medium", "high"] as const;
 export const evidenceVisibilityLevels = ["public", "internal", "hidden"] as const;
 export const evidenceStatuses = ["draft", "approved", "published", "archived"] as const;
 export const adminWritableRoles = ["editor", "admin", "owner"] as const;
+
+export const lowValueDocumentTypes = [
+  "marketing_page",
+  "generic_blog_post",
+  "blog_context",
+  "newsroom_article",
+  "career_page",
+  "investor_page",
+  "campaign_page",
+  "landing_page",
+  "other",
+] as const;

@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { getDocumentVersionById } from "@/server/repositories/document-repository";
 
 export default async function VersionDetailPage({
@@ -22,6 +25,14 @@ export default async function VersionDetailPage({
         eyebrow="Epic 4"
         title={`Version ${version.version_number}`}
         description={`Hash ${version.text_hash}`}
+        actions={
+          <Link
+            href={`/admin/pipeline/${version.id}`}
+            className={cn(buttonVariants({ variant: "outline" }))}
+          >
+            Open pipeline inspector
+          </Link>
+        }
       />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

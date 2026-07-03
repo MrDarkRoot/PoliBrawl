@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Allow: /platforms
+Allow: /platforms/
+Allow: /red-flags/
+Allow: /search
+Allow: /about
+
+Disallow: /admin
+Disallow: /api
+Disallow: /login
+
+Sitemap: https://polibrawl.com/sitemap.xml

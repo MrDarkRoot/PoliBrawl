@@ -39,11 +39,15 @@ export async function POST(request: Request) {
         discovery_run_id: run.id,
         platform_id: platformId,
         url: candidate.url,
+        canonical_url: candidate.canonicalUrl,
         title: candidate.title,
         suggested_document_type: candidate.suggestedDocumentType,
         suggested_tier: candidate.suggestedTier,
         confidence: candidate.confidence,
         detection_reason: candidate.detectionReason,
+        filter_score: candidate.filterScore,
+        filter_decision: candidate.filterDecision,
+        filter_reasons: candidate.filterReasons,
       })),
     );
 
@@ -52,7 +56,9 @@ export async function POST(request: Request) {
       metadata: {
         origin: discovery.origin,
         robotsSitemaps: discovery.robotsSitemaps,
+        rawCandidateCount: discovery.rawCandidateCount,
         candidateCount: discovery.candidates.length,
+        filteredCounts: discovery.filteredCounts,
       },
     });
 

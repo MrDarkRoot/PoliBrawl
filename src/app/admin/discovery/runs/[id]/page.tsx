@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
@@ -57,6 +58,18 @@ export default async function DiscoveryRunPage({
             <p className="text-muted-foreground">Error</p>
             <p>{data.run.error_message ?? "None"}</p>
           </div>
+          <div>
+            <p className="text-muted-foreground">Raw candidates</p>
+            <p>{Number(data.run.metadata?.rawCandidateCount ?? data.candidates.length)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Filtered counts</p>
+            <p>
+              keep {Number(data.run.metadata?.filteredCounts?.keep ?? 0)} · maybe{" "}
+              {Number(data.run.metadata?.filteredCounts?.maybe ?? 0)} · drop{" "}
+              {Number(data.run.metadata?.filteredCounts?.drop ?? 0)}
+            </p>
+          </div>
         </CardContent>
       </Card>
       <Card>
@@ -79,10 +92,24 @@ export default async function DiscoveryRunPage({
                   <p className="mt-1 text-sm text-muted-foreground">
                     {candidate.suggested_document_type ?? "unclassified"} ·{" "}
                     {candidate.suggested_tier ?? "no tier"} ·{" "}
-                    {candidate.detection_reason ?? "no reason"}
+                    {candidate.detection_reason ?? "no reason"} · score{" "}
+                    {candidate.filter_score ?? 0}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(Array.isArray(candidate.filter_reasons)
+                      ? candidate.filter_reasons
+                      : []
+                    ).slice(0, 5).map((reason: unknown) => (
+                      <Badge key={String(reason)} variant="outline">
+                        {String(reason)}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                <StatusBadge value={candidate.status} />
+                <div className="flex flex-col items-end gap-2">
+                  <StatusBadge value={candidate.status} />
+                  <StatusBadge value={candidate.filter_decision ?? "maybe"} />
+                </div>
               </div>
             </div>
           ))}
