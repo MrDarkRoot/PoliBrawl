@@ -119,6 +119,7 @@ async function cleanPlatform(slug) {
   await q(`delete from backup_options where platform_id=$1 or red_flag_id in (select id from red_flags where platform_id=$1)`, [platformId]);
   await q(`delete from survival_notes where red_flag_id in (select id from red_flags where platform_id=$1)`, [platformId]);
   await q(`delete from evidence where red_flag_id in (select id from red_flags where platform_id=$1)`, [platformId]);
+  await q(`delete from evidence where source_id in (select id from sources where platform_id=$1)`, [platformId]);
   await q(`delete from candidate_review_history where candidate_id in (select id from red_flag_candidates where platform_id=$1)`, [platformId]);
   await q(`update keyword_matches set candidate_id=null where platform_id=$1`, [platformId]);
   await q(`delete from red_flag_candidates where platform_id=$1`, [platformId]);
@@ -127,6 +128,7 @@ async function cleanPlatform(slug) {
   await q(`delete from red_flags where platform_id=$1`, [platformId]);
   await q(`delete from keyword_matches where platform_id=$1`, [platformId]);
   await q(`delete from source_snapshots where source_id in (select id from sources where platform_id=$1)`, [platformId]);
+  await q(`delete from source_acquisition_attempts where source_id in (select id from sources where platform_id=$1)`, [platformId]);
   await q(`delete from sources where platform_id=$1`, [platformId]);
   await q(`delete from platforms where id=$1`, [platformId]);
 }
