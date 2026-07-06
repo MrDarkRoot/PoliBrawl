@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { PlatformSurvivalPage, PlatformSurvivalPageRedFlag, RedFlag } from "@/types/polibrawl";
 import type { PageQualityEvaluation } from "@/server/polibrawl/services/survival-page-composer.service";
+import type { ValidationResult } from "@/server/polibrawl/services/editorial/editorial-validator";
 import { 
   attachRedFlagToPageAction, 
   detachRedFlagFromPageAction, 
@@ -10,6 +11,7 @@ import {
   autoAttachReadyRedFlagsAction,
   updatePageReadinessAction
 } from "../actions/survival-page.actions";
+import { generateEditorialDraftAction, generatePlatformGuidePromptAction } from "../actions/editorial.actions";
 
 export function SurvivalPageComposer({ 
   page, 
@@ -24,10 +26,38 @@ export function SurvivalPageComposer({
 }) {
   const [activeTab, setActiveTab] = useState("red-flags");
   const [isPending, startTransition] = useTransition();
+  const [draftContent, setDraftContent] = useState<string | null>(null);
+  const [promptContent, setPromptContent] = useState<string | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateDraft = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await generateEditorialDraftAction(page.platform_id);
+      setDraftContent(res.markdown);
+      setValidationResult(res.validation);
+      const prompt = await generatePlatformGuidePromptAction(page.platform_id);
+      setPromptContent(prompt);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to generate draft.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyPrompt = () => {
+    if (promptContent) {
+      navigator.clipboard.writeText(promptContent);
+      alert("AI Prompt copied to clipboard!");
+    }
+  };
 
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "red-flags", label: `Red Flags (${attachedRedFlags.length})` },
+    { id: "editorial-draft", label: "Editorial Draft (AI)" },
     { id: "page-copy", label: "Page Copy" },
     { id: "quality", label: "Quality Gate" },
     { id: "preview", label: "Preview" },
@@ -144,6 +174,72 @@ export function SurvivalPageComposer({
                 {availableRedFlags.length === 0 && <p className="text-gray-500 text-sm">All available flags are attached.</p>}
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === "editorial-draft" && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center border-b pb-4">
+              <div>
+                <h3 className="text-lg font-medium">AI Editorial Engine</h3>
+                <p className="text-sm text-gray-500">Transform research packets into a perfect writing brief for ChatGPT/Claude.</p>
+              </div>
+              <div className="space-x-3">
+                <button
+                  disabled={isGenerating}
+                  onClick={handleGenerateDraft}
+                  className="px-4 py-2 bg-slate-900 text-white rounded text-sm hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {isGenerating ? "Generating..." : draftContent ? "Regenerate Draft" : "Generate Editorial Draft"}
+                </button>
+                {promptContent && (
+                  <button
+                    onClick={handleCopyPrompt}
+                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Copy AI Prompt
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {validationResult && (
+              <div className={`p-4 border rounded-lg ${validationResult.status === 'PASS' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                <h4 className="font-bold mb-2">Validation: {validationResult.status}</h4>
+                {validationResult.issues.length > 0 && (
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    {validationResult.issues.map((issue: string, i: number) => (
+                      <li key={i}>{issue}</li>
+                    ))}
+                  </ul>
+                )}
+                {validationResult.issues.length === 0 && <p className="text-sm">The draft passes all editorial guidelines.</p>}
+              </div>
+            )}
+
+            {draftContent && (
+              <div>
+                <h4 className="font-medium mb-3">Preview Draft (Markdown)</h4>
+                <div className="relative">
+                  <pre className="bg-gray-50 border rounded p-4 text-xs overflow-auto max-h-[600px] whitespace-pre-wrap font-mono text-gray-800">
+                    {draftContent}
+                  </pre>
+                  <button 
+                    onClick={() => {
+                      const blob = new Blob([draftContent], { type: 'text/markdown' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `platform-guide-${page.platform_id}.md`;
+                      a.click();
+                    }}
+                    className="absolute top-2 right-2 px-3 py-1 bg-white border shadow-sm rounded text-xs hover:bg-gray-50"
+                  >
+                    Download Markdown
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

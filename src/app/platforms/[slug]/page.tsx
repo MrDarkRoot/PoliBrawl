@@ -2,18 +2,29 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ExternalLink, ShieldAlert } from "lucide-react";
 import {
   getPublicPlatformBySlug,
   getPublicSurvivalPage,
   getPublicRedFlags,
+  getPublicEvidence,
+  getPublicSurvivalNotes,
+  getPublicBackupOptions,
+  getPublicChecklists,
 } from "@/server/polibrawl/services/public-delivery.service";
-import { PublicNav, PublicFooter, PublicBreadcrumb, RiskBadge } from "@/components/public/layout";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { PublicNav, PublicFooter } from "@/components/public/layout";
+import {
+  PlatformHero,
+  TLDRBox,
+  RiskCard,
+  AffectedUsers,
+  ChecklistCard,
+  BackupOptionCard,
+  DetailedRedFlagCard,
+  EditorialCallout,
+} from "@/components/public/ui/components";
 
 const CATEGORY_LABELS: Record<string, string> = {
-  payment: "Payment",
+  payment: "Payment Platform",
   creator_freelance: "Creator & Freelance",
   saas_developer: "SaaS & Developer",
 };
@@ -58,6 +69,25 @@ export default async function PlatformSurvivalGuidePage({
   const survivalPage = await getPublicSurvivalPage(platform.id);
   const redFlags = survivalPage ? await getPublicRedFlags(survivalPage.id) : [];
 
+  // Fetch all associated data for all red flags
+  const redFlagsData = await Promise.all(
+    redFlags.map(async (rf) => {
+      const [evidence, survivalNotes, backupOptions, checklists] = await Promise.all([
+        getPublicEvidence(rf.id),
+        getPublicSurvivalNotes(rf.id),
+        getPublicBackupOptions(rf.id),
+        getPublicChecklists(rf.id),
+      ]);
+      return {
+        ...rf,
+        evidence,
+        survivalNotes,
+        backupOptions,
+        checklists,
+      };
+    })
+  );
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -72,6 +102,25 @@ export default async function PlatformSurvivalGuidePage({
     ],
   };
 
+  // Compile TL;DR points
+  const tldrPoints = [];
+  if (survivalPage?.survival_summary) {
+    tldrPoints.push(...survivalPage.survival_summary.split('.').filter(s => s.trim().length > 10).map(s => s.trim() + '.').slice(0, 3));
+  } else {
+    redFlags.slice(0, 3).forEach(rf => {
+      if (rf.summary) tldrPoints.push(rf.summary.split('.')[0] + '.');
+    });
+  }
+
+  // Compile unified Checklists
+  const allChecklists = redFlagsData.flatMap(rf => rf.checklists);
+  
+  // Compile unified Backup Options
+  const allBackupOptions = redFlagsData.flatMap(rf => rf.backupOptions);
+
+  // Affected Users Chips
+  const affectedUsers = platform.category === 'payment' ? ['Freelancer', 'Agency', 'SaaS', 'Creator'] : ['Freelancer', 'Small Business'];
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <script
@@ -80,169 +129,128 @@ export default async function PlatformSurvivalGuidePage({
       />
       <PublicNav />
 
-      <main className="flex-1 py-10 mx-auto w-full max-w-4xl px-4 lg:px-6" id="main-content">
-        <PublicBreadcrumb
-          items={[
-            { label: "Directory", href: "/platforms" },
-            { label: platform.name },
-          ]}
-        />
-
-        <div className="space-y-10">
-          {/* Platform header */}
-          <header>
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded px-2 py-0.5">
-                    {CATEGORY_LABELS[platform.category] ?? platform.category}
-                  </span>
-                  {platform.main_level && <RiskBadge level={platform.main_level} />}
-                </div>
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-                  {platform.name}
-                </h1>
-              </div>
-              {platform.website_url && (
-                <a
-                  href={platform.website_url}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-                  aria-label={`Visit ${platform.name} official website (opens in new tab)`}
-                >
-                  Official website
-                  <ExternalLink className="ml-2 h-3.5 w-3.5" aria-hidden="true" />
-                </a>
-              )}
-            </div>
-
-            {(survivalPage?.summary ?? platform.summary) && (
-              <p className="mt-4 text-lg text-slate-600 leading-relaxed max-w-3xl">
-                {survivalPage?.summary ?? platform.summary}
-              </p>
-            )}
-          </header>
-
-          {survivalPage ? (
-            <div className="space-y-10">
-              {/* Editorial intro */}
-              {survivalPage.editorial_intro && (
-                <section aria-labelledby="editorial-overview-heading">
-                  <h2
-                    id="editorial-overview-heading"
-                    className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4"
-                  >
-                    Editorial Overview
-                  </h2>
-                  <div className="prose prose-slate max-w-none text-sm leading-relaxed whitespace-pre-wrap text-slate-700">
-                    {survivalPage.editorial_intro}
-                  </div>
-                </section>
-              )}
-
-              {/* Survival summary callout */}
-              {survivalPage.survival_summary && (
-                <section
-                  className="bg-blue-50 border border-blue-100 rounded-lg p-6"
-                  aria-labelledby="survival-summary-heading"
-                >
-                  <h2
-                    id="survival-summary-heading"
-                    className="text-sm font-semibold text-blue-900 flex items-center mb-3"
-                  >
-                    <ShieldAlert className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Summary
-                  </h2>
-                  <div className="text-sm text-blue-800 whitespace-pre-wrap leading-relaxed">
-                    {survivalPage.survival_summary}
-                  </div>
-                </section>
-              )}
-
-              {/* Red Flags list */}
-              <section aria-labelledby="red-flags-heading">
-                <h2
-                  id="red-flags-heading"
-                  className="text-xl font-semibold text-slate-900 mb-5"
-                >
-                  Policy Red Flags
-                </h2>
-
-                {redFlags.length === 0 ? (
-                  <p className="text-sm text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-5 py-8 text-center">
-                    No red flags have been published for this platform yet.
-                  </p>
-                ) : (
-                  <div className="grid gap-3" role="list">
-                    {redFlags.map((rf) => (
-                      <Link
-                        key={rf.id}
-                        href={`/red-flags/${rf.id}`}
-                        className="group outline-none block"
-                        role="listitem"
-                        aria-label={`${rf.title} — ${rf.level} risk`}
-                      >
-                        <article className="bg-white border border-slate-200 rounded-lg p-5 transition-all hover:shadow-sm hover:border-slate-300 focus-visible:ring-2 focus-visible:ring-slate-900">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="space-y-1.5 flex-1 min-w-0">
-                              <h3 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors leading-snug">
-                                {rf.title}
-                              </h3>
-                              {rf.summary && (
-                                <p className="text-sm text-slate-500 line-clamp-2">
-                                  {rf.summary}
-                                </p>
-                              )}
-                            </div>
-                            <div className="shrink-0 flex items-center gap-2 flex-wrap justify-end">
-                              {rf.section_label && (
-                                <span className="text-xs text-slate-400 bg-slate-50 border border-slate-200 rounded px-2 py-0.5">
-                                  {rf.section_label}
-                                </span>
-                              )}
-                              <RiskBadge level={rf.level} />
-                            </div>
-                          </div>
-                        </article>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Disclaimer */}
-              {survivalPage.disclaimer_note && (
-                <aside
-                  className="text-xs text-slate-500 bg-slate-50 p-4 rounded border border-slate-200 whitespace-pre-wrap"
-                  aria-label="Editorial disclaimer"
-                >
-                  <span className="font-semibold block mb-1">Disclaimer</span>
-                  {survivalPage.disclaimer_note}
-                </aside>
-              )}
-            </div>
-          ) : (
-            /* No survival page yet */
-            <div
-              className="py-16 text-center bg-slate-50 border border-slate-200 rounded-lg"
-              role="status"
-            >
-              <ShieldAlert className="h-8 w-8 text-slate-300 mx-auto" aria-hidden="true" />
-              <h2 className="mt-4 text-base font-medium text-slate-700">
-                Survival guide in progress
-              </h2>
-              <p className="mt-2 text-sm text-slate-500 max-w-xs mx-auto">
-                The editorial team is working on coverage for this platform. Check back later.
-              </p>
-            </div>
-          )}
-
-          {/* Independent editorial note */}
-          <aside className="border-t border-slate-100 pt-6 text-xs text-slate-400 leading-relaxed">
-            PoliBrawl is not affiliated with, endorsed by, or sponsored by {platform.name}. This
-            content is editorially independent and does not constitute legal advice.
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 lg:px-8 py-10" id="main-content">
+        <div className="flex flex-col lg:flex-row gap-12 items-start">
+          
+          {/* Sticky Sidebar */}
+          <aside className="hidden lg:block w-64 shrink-0 sticky top-24 max-h-[calc(100vh-8rem)] overflow-y-auto pr-6">
+            <nav className="space-y-1 text-sm font-medium text-slate-500">
+              <Link href="#overview" className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">Overview</Link>
+              <Link href="#top-risks" className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">Top Risks</Link>
+              <Link href="#survival-checklist" className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">Survival Checklist</Link>
+              <Link href="#backup-options" className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">Backup Options</Link>
+              <Link href="#detailed-flags" className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">Detailed Red Flags</Link>
+              <Link href="#editorial" className="block px-3 py-2 rounded-md hover:bg-slate-50 hover:text-slate-900 transition-colors">Editorial Methodology</Link>
+            </nav>
           </aside>
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            
+            <div id="overview">
+              <PlatformHero 
+                name={platform.name}
+                category={CATEGORY_LABELS[platform.category] ?? platform.category}
+                riskLevel={platform.main_level || "low"}
+                websiteUrl={platform.website_url || ""}
+                lastReviewed={survivalPage?.last_reviewed_at ? new Date(survivalPage.last_reviewed_at).toLocaleDateString() : "Pending"}
+                summary={survivalPage?.summary ?? platform.summary ?? ""}
+              />
+
+              {tldrPoints.length > 0 && (
+                <TLDRBox points={tldrPoints} />
+              )}
+            </div>
+
+            <div id="top-risks" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-6">Top Risks</h2>
+              {redFlags.length === 0 ? (
+                <p className="text-slate-500 bg-slate-50 p-6 rounded-xl border border-slate-200">No red flags have been published yet.</p>
+              ) : (
+                <div className="grid gap-6 sm:grid-cols-2">
+                  {redFlags.map(rf => (
+                    <RiskCard 
+                      key={rf.id}
+                      title={rf.title}
+                      severity={rf.level}
+                      summary={rf.summary || ""}
+                      href={`/red-flags/${rf.id}`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div id="affected-users" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-6">Who is Affected?</h2>
+              <AffectedUsers types={affectedUsers} />
+            </div>
+
+            <div id="survival-checklist" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-6">Survival Checklist</h2>
+              {allChecklists.length === 0 ? (
+                <p className="text-slate-500 bg-slate-50 p-6 rounded-xl border border-slate-200">No checklist available.</p>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {allChecklists.map(checklist => (
+                    <ChecklistCard 
+                      key={checklist.id}
+                      title={checklist.title}
+                      items={checklist.items.map(i => ({ label: i.label, required: i.required ?? false }))}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div id="backup-options" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-6">Backup Options</h2>
+              {allBackupOptions.length === 0 ? (
+                <p className="text-slate-500 bg-slate-50 p-6 rounded-xl border border-slate-200">No backup options listed.</p>
+              ) : (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {allBackupOptions.map(backup => (
+                    <BackupOptionCard 
+                      key={backup.id}
+                      name={backup.label}
+                      type={backup.option_type}
+                      summary={backup.summary || ""}
+                      tradeoffs={backup.tradeoffs || ""}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div id="detailed-flags" className="mb-16 scroll-mt-24">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 mb-6">Detailed Red Flags</h2>
+              <div className="space-y-8">
+                {redFlagsData.map(rf => (
+                  <DetailedRedFlagCard 
+                    key={rf.id}
+                    title={rf.title}
+                    severity={rf.level}
+                    summary={rf.summary || ""}
+                    category={rf.category}
+                    survivalNote={rf.survivalNotes[0]?.note_body}
+                    evidence={rf.evidence[0] ? {
+                      title: rf.evidence[0].source_title || "Official Document",
+                      url: rf.evidence[0].source_url || "",
+                      excerpt: rf.evidence[0].excerpt,
+                      date: rf.evidence[0].reviewed_at ? new Date(rf.evidence[0].reviewed_at).toLocaleDateString() : "Recent"
+                    } : undefined}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div id="editorial" className="scroll-mt-24">
+              <EditorialCallout>
+                <strong>Editorial Methodology:</strong> PoliBrawl is an independent policy intelligence platform. We are not affiliated with, endorsed by, or sponsored by {platform.name}. The evidence provided is extracted directly from the platform&apos;s official terms of service and reviewed by our editorial team. This information does not constitute legal advice.
+              </EditorialCallout>
+            </div>
+
+          </div>
         </div>
       </main>
 
