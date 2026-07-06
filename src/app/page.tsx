@@ -1,26 +1,26 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, ShieldAlert, FileText } from "lucide-react";
+import { ArrowRight, BookOpen, ShieldAlert, FileText, CheckCircle, Activity } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/public/layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "PoliBrawl — Platform Policy Intelligence",
+  title: "PoliBrawl — Survival Guides for Platform Risk",
   description:
-    "Evidence-backed platform policy analysis. Understand the real risks in payment, creator, and SaaS platform terms before they affect your business.",
+    "PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.",
   openGraph: {
-    title: "PoliBrawl — Platform Policy Intelligence",
+    title: "PoliBrawl — Survival Guides for Platform Risk",
     description:
-      "Evidence-backed platform policy analysis. Understand the real risks in payment, creator, and SaaS platform terms before they affect your business.",
+      "PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.",
     url: "https://polibrawl.com",
     siteName: "PoliBrawl",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "PoliBrawl — Platform Policy Intelligence",
+    title: "PoliBrawl — Survival Guides for Platform Risk",
     description:
-      "Evidence-backed platform policy analysis. Understand the real risks in payment, creator, and SaaS platform terms before they affect your business.",
+      "PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.",
   },
 };
 
@@ -28,23 +28,23 @@ const pillars = [
   {
     icon: ShieldAlert,
     color: "bg-red-100 text-red-700",
-    title: "Policy Red Flags",
+    title: "Risk Translation",
     description:
-      "Clauses in platform agreements that may restrict your funds, suspend your account, or limit your operational freedom are documented with direct quotes.",
+      "We read the fine print and highlight the clauses that can freeze your cash flow or terminate your account without warning.",
+  },
+  {
+    icon: Activity,
+    color: "bg-amber-100 text-amber-700",
+    title: "Actionable Playbooks",
+    description:
+      "No vague legal advice. We provide phase-by-phase survival steps: what to do before, during, and after an account review.",
   },
   {
     icon: BookOpen,
     color: "bg-blue-100 text-blue-700",
-    title: "Survival Guides",
+    title: "Backup Architecture",
     description:
-      "Each reviewed platform includes a practical guide with notes and checklists to help you operate more safely within the platform's constraints.",
-  },
-  {
-    icon: FileText,
-    color: "bg-slate-100 text-slate-700",
-    title: "Cited Evidence",
-    description:
-      "Every finding is anchored to specific source text. We cite the clause, the document, and the date of capture so you can verify independently.",
+      "For every critical risk, we document the technical and operational backup rails you need to survive a sudden platform ban.",
   },
 ] as const;
 
@@ -73,33 +73,22 @@ export default function PublicLandingPage() {
         {/* Hero */}
         <section className="mx-auto max-w-6xl px-4 py-24 lg:px-6 lg:py-32">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-6">
-              Platform Policy Intelligence
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-6 flex items-center">
+              <CheckCircle className="w-4 h-4 mr-2" /> Platform Policy Intelligence
             </p>
-            <h1 className="text-5xl font-semibold tracking-tight text-slate-900 sm:text-6xl text-balance leading-tight">
-              Know the risks before they know you.
+            <h1 className="text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl text-balance leading-tight">
+              Survival guides for platform risk.
             </h1>
-            <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl">
-              PoliBrawl documents policy red flags in platform terms of service so
-              freelancers, creators, and developers can make informed decisions about
-              where to build their business.
+            <p className="mt-6 text-xl leading-relaxed text-slate-600 max-w-2xl">
+              PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for founders, creators, and agencies who depend on online platforms.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <Link
                 href="/platforms"
-                className={cn(buttonVariants({ size: "lg" }))}
+                className={cn(buttonVariants({ size: "lg" }), "font-bold text-base px-8 h-12")}
               >
-                Browse Platform Directory
+                Browse Survival Guides
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/about"
-                className={cn(
-                  buttonVariants({ variant: "ghost", size: "lg" }),
-                  "text-slate-600"
-                )}
-              >
-                How it works
               </Link>
             </div>
           </div>
@@ -113,20 +102,20 @@ export default function PublicLandingPage() {
           <div className="mx-auto max-w-6xl px-4 lg:px-6">
             <h2
               id="pillars-heading"
-              className="text-sm font-semibold uppercase tracking-widest text-slate-400 mb-12"
+              className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-12"
             >
-              What we provide
+              How PoliBrawl Works
             </h2>
             <div className="grid gap-10 md:grid-cols-3">
               {pillars.map((pillar) => (
-                <div key={pillar.title} className="space-y-4">
+                <div key={pillar.title} className="space-y-4 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
                   <div
-                    className={`inline-flex h-10 w-10 items-center justify-center rounded-lg ${pillar.color}`}
+                    className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${pillar.color}`}
                     aria-hidden="true"
                   >
-                    <pillar.icon className="h-5 w-5" />
+                    <pillar.icon className="h-6 w-6" />
                   </div>
-                  <h3 className="text-base font-semibold text-slate-900">{pillar.title}</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{pillar.title}</h3>
                   <p className="text-sm text-slate-600 leading-relaxed">{pillar.description}</p>
                 </div>
               ))}
@@ -135,16 +124,15 @@ export default function PublicLandingPage() {
         </section>
 
         {/* Editorial note */}
-        <section className="bg-white border-t border-slate-100 py-12">
+        <section className="bg-white border-t border-slate-100 py-16">
           <div className="mx-auto max-w-6xl px-4 lg:px-6">
-            <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-              <strong className="font-medium text-slate-500">Editorial independence.</strong>{" "}
-              PoliBrawl is not affiliated with any platform listed in this directory.
-              Content is produced independently and does not constitute legal advice.{" "}
-              <Link href="/about" className="underline hover:text-slate-700 transition-colors">
-                Read our methodology &rarr;
-              </Link>
-            </p>
+            <div className="flex items-start gap-4 p-6 bg-slate-50 rounded-xl border border-slate-200 max-w-3xl">
+              <FileText className="w-6 h-6 text-slate-400 shrink-0 mt-1" />
+              <p className="text-sm text-slate-600 leading-relaxed">
+                <strong className="font-bold text-slate-900 block mb-1">Editorial Independence</strong>
+                PoliBrawl is not affiliated with any platform listed in this directory. Our analysis focuses strictly on operational risk. Content is produced independently and does not constitute legal advice.
+              </p>
+            </div>
           </div>
         </section>
       </main>
