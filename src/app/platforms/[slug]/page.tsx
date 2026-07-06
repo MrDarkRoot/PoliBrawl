@@ -31,6 +31,13 @@ import {
   ReadingProgressNav,
 } from "@/components/public/ui/playbook-components";
 import { sanitizePublicCopy } from "@/components/public/ui/copy-sanitizer";
+import { 
+  PlatformDNA, 
+  RelatedGuidesLoop, 
+  RiskConceptLinks, 
+  PolicyFreshnessBlock, 
+  CopyWarningButton 
+} from "@/components/public/ui/retention-components";
 
 const CATEGORY_LABELS: Record<string, string> = {
   payment: "Payment Platform",
@@ -228,6 +235,8 @@ export default async function PlatformSurvivalGuidePage({
                 message={priorityMessage}
                 subtext={prioritySubtext}
               />
+              
+              <PlatformDNA redFlags={redFlags} />
             </div>
 
             <div id="exposure" className="scroll-mt-32">
@@ -245,16 +254,25 @@ export default async function PlatformSurvivalGuidePage({
                     const whatCanHappen = rf.level === 'critical' ? 'Funds may become unavailable or account access immediately revoked without prior warning.' : 'Certain features or withdrawals may be temporarily paused pending review.';
                     const whyItHurts = rf.level === 'critical' ? 'You may still owe refunds, contractors, shipping costs, or customer support while your cash flow is locked.' : 'Operational friction increases, demanding significant documentation effort.';
                     return (
-                      <StoryRiskCard 
-                        key={rf.id}
-                        title={rf.title}
-                        severity={rf.level}
-                        uncomfortableTruth={sanitizePublicCopy(rf.summary, 'hero')}
-                        whatCanHappen={whatCanHappen}
-                        whyItHurts={whyItHurts}
-                        prepareNow={rf.survivalNotes[0] ? sanitizePublicCopy(rf.survivalNotes[0].note_body, 'action') : 'Maintain strict compliance with acceptable use policies.'}
-                        href={`/red-flags/${rf.id}`}
-                      />
+                      <div key={rf.id} className="relative">
+                        <StoryRiskCard 
+                          title={rf.title}
+                          severity={rf.level}
+                          uncomfortableTruth={sanitizePublicCopy(rf.summary, 'hero')}
+                          whatCanHappen={whatCanHappen}
+                          whyItHurts={whyItHurts}
+                          prepareNow={rf.survivalNotes[0] ? sanitizePublicCopy(rf.survivalNotes[0].note_body, 'action') : 'Maintain strict compliance with acceptable use policies.'}
+                          href={`/red-flags/${rf.id}`}
+                        />
+                        <div className="mt-2 text-right">
+                          <CopyWarningButton 
+                            platformName={platform.name}
+                            riskTitle={rf.title}
+                            whyItMatters={whyItHurts}
+                            url={`https://polibrawl.com/red-flags/${rf.id}`}
+                          />
+                        </div>
+                      </div>
                     );
                   })
                 )}
@@ -347,9 +365,20 @@ export default async function PlatformSurvivalGuidePage({
                 excerpt: sanitizePublicCopy(ev.excerpt, 'summary'),
                 date: ev.reviewed_at ? new Date(ev.reviewed_at).toLocaleDateString() : "Recent"
               }))} />
+              
+              <PolicyFreshnessBlock 
+                lastReviewed={survivalPage?.last_reviewed_at ? new Date(survivalPage.last_reviewed_at).toLocaleDateString() : "Pending"}
+                evidenceCount={redFlagsData.flatMap(rf => rf.evidence).length}
+                redFlagCount={redFlags.length}
+              />
             </div>
 
-            <NextSurvivalGuides platforms={relatedPlatforms} />
+            <RelatedGuidesLoop 
+              currentPlatformName={platform.name}
+              relatedPlatforms={relatedPlatforms}
+            />
+            
+            <RiskConceptLinks />
 
             <div id="editorial" className="scroll-mt-32">
               <EditorialMethodology />

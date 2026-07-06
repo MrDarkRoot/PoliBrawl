@@ -4,6 +4,7 @@ import { PublicNav, PublicFooter } from "@/components/public/layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getPublicPlatforms } from "@/server/polibrawl/services/public-delivery.service";
+import { StackProfiler } from "@/components/public/ui/retention-components";
 
 export const metadata = {
   title: "PoliBrawl — Survival Guides for Platform Risk",
@@ -51,29 +52,34 @@ export default async function PublicLandingPage() {
               <CheckCircle className="w-5 h-5 mr-3" /> Platform Policy Intelligence
             </p>
             <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 leading-[1.05] mb-8">
-              Survival guides for platform risk.
+              Don&apos;t let one platform freeze your business.
             </h1>
             <p className="text-2xl sm:text-3xl leading-snug text-slate-600 max-w-3xl font-medium mb-12">
-              PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.
+              PoliBrawl turns official platform policies into practical red flags, survival checklists, and backup plans for people who depend on online platforms.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <Link
                 href="/platforms"
                 className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto font-black text-lg px-10 h-16 rounded-xl")}
               >
-                Browse published guides
+                Browse platform guides
                 <ArrowRight className="ml-3 h-5 w-5" aria-hidden="true" />
               </Link>
-              <Link
-                href="/platforms/stripe"
+              <a
+                href="#stack-profiler"
                 className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto font-bold text-lg px-10 h-16 rounded-xl border-2 border-slate-200 hover:border-slate-900 hover:bg-slate-50")}
               >
-                <CreditCard className="mr-3 h-5 w-5 text-slate-500" />
-                Start with Payments
-              </Link>
+                <Activity className="mr-3 h-5 w-5 text-slate-500" />
+                Build my stack
+              </a>
             </div>
           </div>
         </section>
+
+        {/* Stack Profiler */}
+        <div id="stack-profiler">
+          <StackProfiler platforms={platforms} />
+        </div>
 
         {/* Latest Guides Loop */}
         <section className="border-t-2 border-slate-100 bg-white py-24">

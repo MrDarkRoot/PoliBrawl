@@ -26,6 +26,7 @@ import {
   ReadingProgressNav
 } from "@/components/public/ui/playbook-components";
 import { sanitizePublicCopy } from "@/components/public/ui/copy-sanitizer";
+import { CopyWarningButton } from "@/components/public/ui/retention-components";
 import { ArrowLeft, Target, AlertTriangle, Shield } from "lucide-react";
 
 async function getPublishedPlatformById(id: string): Promise<Platform | null> {
@@ -202,6 +203,15 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
                   <p>{sanitizePublicCopy(redFlag.summary, 'hero')}</p>
                 </div>
               )}
+              
+              <div className="mt-8">
+                <CopyWarningButton 
+                  platformName={platform.name}
+                  riskTitle={redFlag.title}
+                  whyItMatters={redFlag.why_it_matters ? sanitizePublicCopy(redFlag.why_it_matters, 'summary') : sanitizePublicCopy(redFlag.summary, 'summary')}
+                  url={`https://polibrawl.com/red-flags/${redFlag.id}`}
+                />
+              </div>
             </div>
 
             <div id="impact" className="mb-20 scroll-mt-32">
