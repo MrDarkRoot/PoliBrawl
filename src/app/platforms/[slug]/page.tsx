@@ -13,19 +13,20 @@ import {
 } from "@/server/polibrawl/services/public-delivery.service";
 import { PublicNav, PublicFooter } from "@/components/public/layout";
 import {
-  SurvivalHero,
-  SurvivalPriorityCallout,
-  SelfIdentificationChecklist,
-  RiskSnapshotGrid,
-  TopRiskCard,
+  SurvivalGuideHero,
+  SurvivalPriorityBlock,
+  ExposureChecklist,
+  RiskMeterGrid,
+  TopThingsThatCanGoWrong,
+  StoryRiskCard,
   SurvivalPlaybook,
-  PlaybookColumn,
-  TodaysActions,
-  ActionItemCard,
+  PlaybookPhaseCard,
+  WhatToDoToday,
+  TodayActionCard,
   BackupRails,
   BackupRailCard,
   EvidenceAccordion,
-  RelatedGuides,
+  NextSurvivalGuides,
   EditorialMethodology,
   ReadingProgressNav,
 } from "@/components/public/ui/playbook-components";
@@ -42,16 +43,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const platform = await getPublicPlatformBySlug(slug);
   if (!platform) return { title: "Not Found | PoliBrawl" };
   const description =
-    sanitizePublicCopy(platform.summary) ||
-    `Policy red flags and survival guide for ${platform.name}. Understand account risk, payout restrictions, and more.`;
+    sanitizePublicCopy(platform.summary, 'summary') ||
+    `Survival guide for ${platform.name}. Understand account risk, payout restrictions, and more.`;
   const url = `https://polibrawl.com/platforms/${platform.slug}`;
 
   return {
-    title: `${platform.name} Survival Playbook — Policy Red Flags | PoliBrawl`,
+    title: `${platform.name} Survival Playbook — PoliBrawl`,
     description,
     alternates: { canonical: url },
     openGraph: {
-      title: `${platform.name} Survival Playbook — Policy Red Flags | PoliBrawl`,
+      title: `${platform.name} Survival Playbook — PoliBrawl`,
       description,
       url,
       siteName: "PoliBrawl",
@@ -59,7 +60,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     },
     twitter: {
       card: "summary_large_image",
-      title: `${platform.name} Survival Playbook — Policy Red Flags | PoliBrawl`,
+      title: `${platform.name} Survival Playbook — PoliBrawl`,
       description,
     },
   };
@@ -98,14 +99,19 @@ export default async function PlatformSurvivalGuidePage({
   const allPlatforms = await getPublicPlatforms();
   const relatedPlatforms = allPlatforms
     .filter(p => p.slug !== slug)
-    .slice(0, 5)
-    .map(p => ({ name: p.name, slug: p.slug }));
+    .slice(0, 6)
+    .map(p => ({ 
+      name: p.name, 
+      slug: p.slug, 
+      riskLevel: p.main_level || 'low', 
+      category: p.category 
+    }));
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Directory", item: "https://polibrawl.com/platforms" },
+      { "@type": "ListItem", position: 1, name: "Survival Guides", item: "https://polibrawl.com/platforms" },
       {
         "@type": "ListItem",
         position: 2,
@@ -116,193 +122,236 @@ export default async function PlatformSurvivalGuidePage({
   };
 
   const rawSummary = survivalPage?.survival_summary || platform.summary;
-  const safeSummary = sanitizePublicCopy(rawSummary);
+  const safeSummary = sanitizePublicCopy(rawSummary, 'summary');
 
   const isHighRisk = redFlags.some(rf => rf.level === 'high' || rf.level === 'critical');
-  const priorityCallout = isHighRisk 
-    ? "High-impact policy risks detected. Review the top risks below before scaling transaction volume."
+  
+  const priorityHeading = "If you only do one thing";
+  const priorityMessage = isHighRisk 
+    ? "Keep a second payout rail ready before you need it."
     : "Review standard terms and backup options to ensure uninterrupted operations.";
+  const prioritySubtext = isHighRisk
+    ? "The worst time to create a backup payment route is after your primary account is already limited."
+    : "Operational continuity requires knowing the rules of the platforms you depend on.";
+
+  let uncomfortableTruth = `Your operations on ${platform.name} may be interrupted without warning if internal risk thresholds are met.`;
+  if (platform.category === 'payment') {
+    uncomfortableTruth = `Your account can look normal until a review suddenly makes funds unavailable.`;
+  }
 
   const allChecklists = redFlagsData.flatMap(rf => rf.checklists);
   const allBackupOptions = redFlagsData.flatMap(rf => rf.backupOptions);
 
-  const riskSnapshots = redFlags.slice(0, 4).map(rf => {
-    let cardLabel = rf.category.replace(/_/g, ' ');
-    if (cardLabel === 'money') cardLabel = 'Cash-Flow Risk';
-    if (cardLabel === 'account') cardLabel = 'Account Access Risk';
-    if (cardLabel === 'kyc') cardLabel = 'Verification Burden';
-    if (cardLabel === 'appeal') cardLabel = 'Recovery Friction';
+  const riskSnapshots = [
+    { label: "Cash-Flow Risk", level: "Low", description: "Default risk level." },
+    { label: "Account Access Risk", level: "Low", description: "Default risk level." },
+    { label: "Verification Burden", level: "Low", description: "Default risk level." },
+    { label: "Recovery Friction", level: "Low", description: "Default risk level." },
+  ];
 
-    return {
-      label: cardLabel,
-      level: rf.level,
-      description: sanitizePublicCopy(rf.summary) || "Operational disruption possible under specific conditions."
-    };
+  redFlags.forEach(rf => {
+    let targetIndex = -1;
+    if (rf.category === 'money' || (rf.category as string) === 'payment') targetIndex = 0;
+    if (rf.category === 'account') targetIndex = 1;
+    if (rf.category === 'kyc') targetIndex = 2;
+    if (rf.category === 'appeal' || (rf.category as string) === 'recovery') targetIndex = 3;
+
+    if (targetIndex !== -1) {
+      const currentScore = riskSnapshots[targetIndex].level === 'critical' ? 10 : riskSnapshots[targetIndex].level === 'high' ? 8 : riskSnapshots[targetIndex].level === 'medium' ? 5 : 2;
+      const newScore = rf.level === 'critical' ? 10 : rf.level === 'high' ? 8 : rf.level === 'medium' ? 5 : 2;
+      if (newScore > currentScore) {
+        riskSnapshots[targetIndex].level = rf.level;
+        riskSnapshots[targetIndex].description = sanitizePublicCopy(rf.summary, 'summary') || "Operational disruption possible under specific conditions.";
+      }
+    }
   });
 
   const selfIdItems = [];
   if (platform.category === 'payment') {
     selfIdItems.push(
-      "You receive client payments through this platform",
-      "You cannot absorb delayed withdrawals (30-90 days)",
-      "You handle high-risk transactions, refunds, or international disputes",
-      "This is your primary rail for managing operational cash flow"
+      "This platform is your main income rail",
+      "You receive client or customer payments here",
+      "You sell services, digital goods, or subscriptions",
+      "You handle refunds, disputes, or chargebacks",
+      "You cannot absorb delayed withdrawals (30-90 days)"
     );
   } else {
     selfIdItems.push(
       "You run critical business operations through this platform",
-      "You sell digital goods, services, or subscriptions",
-      "You rely on API access for production workflows",
+      "Your core product relies on this API or service",
+      "You have a large amount of customer data stored here",
       "You cannot easily migrate to an alternative within 48 hours"
     );
   }
 
-  // Pre-fill generic survival playbook if empty
   const beforeActions = redFlagsData.flatMap(rf => rf.survivalNotes).filter(sn => sn.note_title.toLowerCase().includes('before') || sn.note_title.toLowerCase().includes('prep'));
   const duringActions = redFlagsData.flatMap(rf => rf.survivalNotes).filter(sn => sn.note_title.toLowerCase().includes('during') || sn.note_title.toLowerCase().includes('review') || sn.note_title.toLowerCase().includes('limit'));
   const afterActions = redFlagsData.flatMap(rf => rf.survivalNotes).filter(sn => sn.note_title.toLowerCase().includes('after') || sn.note_title.toLowerCase().includes('recover'));
 
   const navLinks = [
-    { id: "overview", label: "Overview" },
-    { id: "top-risks", label: "Top Risks" },
+    { id: "overview", label: "Survival Overview" },
+    { id: "exposure", label: "Are You Exposed?" },
+    { id: "risks", label: "Top Risks" },
     { id: "playbook", label: "Survival Playbook" },
-    { id: "actions", label: "Today's Actions" },
+    { id: "actions", label: "What To Do Today" },
     { id: "backup-rails", label: "Backup Rails" },
+    { id: "evidence", label: "How Do We Know?" },
   ];
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <PublicNav />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 lg:px-8 py-10" id="main-content">
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
+      <main className="flex-1 max-w-[90rem] mx-auto w-full px-4 lg:px-8 py-12" id="main-content">
+        <div className="flex flex-col lg:flex-row gap-16 items-start">
           
           <ReadingProgressNav links={navLinks} />
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 max-w-5xl">
             <div id="overview">
-              <SurvivalHero 
+              <SurvivalGuideHero 
                 name={platform.name}
                 category={CATEGORY_LABELS[platform.category] ?? platform.category}
                 riskLevel={platform.main_level || "low"}
                 websiteUrl={platform.website_url || ""}
                 lastReviewed={survivalPage?.last_reviewed_at ? new Date(survivalPage.last_reviewed_at).toLocaleDateString() : "Pending"}
+                uncomfortableTruth={uncomfortableTruth}
                 summary={safeSummary}
               />
 
-              <SurvivalPriorityCallout>
-                If you only do one thing: <strong>{priorityCallout}</strong>
-              </SurvivalPriorityCallout>
-
-              <SelfIdentificationChecklist items={selfIdItems} />
+              <SurvivalPriorityBlock 
+                heading={priorityHeading}
+                message={priorityMessage}
+                subtext={prioritySubtext}
+              />
             </div>
 
-            <div id="top-risks" className="scroll-mt-24">
-              <RiskSnapshotGrid risks={riskSnapshots} />
+            <div id="exposure" className="scroll-mt-32">
+              <ExposureChecklist items={selfIdItems} />
+            </div>
+
+            <div id="risks" className="scroll-mt-32">
+              <RiskMeterGrid risks={riskSnapshots} />
               
-              <div className="mt-16">
-                <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-8">Detailed Risk Profiles</h2>
+              <TopThingsThatCanGoWrong>
                 {redFlags.length === 0 ? (
-                  <p className="text-slate-500 bg-slate-50 p-6 rounded-xl border border-slate-200">No detailed risk profiles published yet.</p>
+                  <p className="text-xl font-medium text-slate-500 bg-slate-50 p-10 rounded-2xl border-2 border-slate-200">No detailed risk profiles published yet.</p>
                 ) : (
-                  <div className="space-y-6">
-                    {redFlagsData.map(rf => (
-                      <TopRiskCard 
+                  redFlagsData.map(rf => {
+                    const whatCanHappen = rf.level === 'critical' ? 'Funds may become unavailable or account access immediately revoked without prior warning.' : 'Certain features or withdrawals may be temporarily paused pending review.';
+                    const whyItHurts = rf.level === 'critical' ? 'You may still owe refunds, contractors, shipping costs, or customer support while your cash flow is locked.' : 'Operational friction increases, demanding significant documentation effort.';
+                    return (
+                      <StoryRiskCard 
                         key={rf.id}
                         title={rf.title}
                         severity={rf.level}
-                        impact={rf.level === 'critical' ? 'Total loss of account access or held funds.' : 'Temporary limitation on withdrawals or features.'}
-                        whyItMatters={sanitizePublicCopy(rf.summary)}
-                        preparation={rf.survivalNotes[0] ? sanitizePublicCopy(rf.survivalNotes[0].note_body) : 'Maintain strict compliance with acceptable use policies.'}
+                        uncomfortableTruth={sanitizePublicCopy(rf.summary, 'hero')}
+                        whatCanHappen={whatCanHappen}
+                        whyItHurts={whyItHurts}
+                        prepareNow={rf.survivalNotes[0] ? sanitizePublicCopy(rf.survivalNotes[0].note_body, 'action') : 'Maintain strict compliance with acceptable use policies.'}
                         href={`/red-flags/${rf.id}`}
                       />
-                    ))}
-                  </div>
+                    );
+                  })
                 )}
-              </div>
+              </TopThingsThatCanGoWrong>
             </div>
 
-            <div id="playbook" className="scroll-mt-24">
+            <div id="playbook" className="scroll-mt-32">
               <SurvivalPlaybook>
-                <PlaybookColumn phase="Before it happens" title="Preparation">
+                <PlaybookPhaseCard phase="Before anything happens" title="Prepare Now">
                   {beforeActions.length > 0 ? (
-                    beforeActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body)}</p>)
+                    beforeActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
                   ) : (
-                    <p>Establish a secondary operational rail immediately. Ensure all Know Your Business (KYB) and Know Your Customer (KYC) documentation is verified and stored locally. Avoid holding excessive working capital in the platform balance.</p>
+                    <>
+                      <p>Prepare your business formation documents, ownership evidence, and supplier invoices.</p>
+                      <p>Export your transaction records regularly.</p>
+                      <p>Set up a backup payout rail for high-risk cohorts.</p>
+                    </>
                   )}
-                </PlaybookColumn>
-                <PlaybookColumn phase="If it happens today" title="Immediate Mitigation">
+                </PlaybookPhaseCard>
+                <PlaybookPhaseCard phase="If it happens today" title="Mitigate Damage">
                   {duringActions.length > 0 ? (
-                    duringActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body)}</p>)
+                    duringActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
                   ) : (
-                    <p>Do not create a secondary account, as this will trigger permanent bans. Respond to compliance requests with official, unmodified documentation within 24 hours. Pause automated marketing campaigns that drive traffic to this rail to limit customer friction.</p>
+                    <>
+                      <p>Respond through official compliance channels with exact, unmodified PDF documents.</p>
+                      <p>Preserve all customer communication regarding disputes.</p>
+                      <p>Do NOT create a duplicate account to circumvent a ban.</p>
+                    </>
                   )}
-                </PlaybookColumn>
-                <PlaybookColumn phase="After recovery" title="Long-term Strategy">
+                </PlaybookPhaseCard>
+                <PlaybookPhaseCard phase="After recovery" title="Reduce Dependency">
                   {afterActions.length > 0 ? (
-                    afterActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body)}</p>)
+                    afterActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
                   ) : (
-                    <p>If recovered, slowly ramp up volume rather than processing massive backlogs at once. If permanently limited, immediately switch checkout links to your backup rail and prepare for standard funds holding periods (often up to 180 days for chargeback liability).</p>
+                    <>
+                      <p>Reduce your overall dependency on this single platform.</p>
+                      <p>Schedule regular data exports.</p>
+                      <p>Keep your backup payout method active with a small percentage of your traffic.</p>
+                    </>
                   )}
-                </PlaybookColumn>
+                </PlaybookPhaseCard>
               </SurvivalPlaybook>
             </div>
 
-            <div id="actions" className="scroll-mt-24">
-              <TodaysActions>
+            <div id="actions" className="scroll-mt-32">
+              <WhatToDoToday>
                 {allChecklists.length === 0 ? (
-                  <ActionItemCard 
-                    title="Export critical data and verify documents"
+                  <TodayActionCard 
+                    title="Export transaction records"
                     whyItMatters="Keeps evidence ready if your account is reviewed. Prevents frantic document hunting during an active suspension."
-                    timeEstimate="15 mins"
+                    timeEstimate="5-10 min"
                     priority="High"
                   />
                 ) : (
                   allChecklists.flatMap(c => c.items.map(item => (
-                    <ActionItemCard 
+                    <TodayActionCard 
                       key={item.label}
-                      title={sanitizePublicCopy(item.label)}
-                      whyItMatters={item.required ? "Critical requirement based on policy triggers." : "Recommended hygienic practice for this platform."}
+                      title={sanitizePublicCopy(item.label, 'action')}
+                      whyItMatters={item.required ? "Critical requirement based on official policy triggers." : "Recommended operational hygiene."}
                       priority={item.required ? "High" : "Medium"}
+                      timeEstimate="10-15 min"
                     />
                   )))
                 )}
-              </TodaysActions>
+              </WhatToDoToday>
             </div>
 
-            <div id="backup-rails" className="scroll-mt-24">
+            <div id="backup-rails" className="scroll-mt-32">
               <BackupRails>
                 {allBackupOptions.length === 0 ? (
-                  <p className="text-slate-500 bg-slate-50 p-6 rounded-xl border border-slate-200">No backup options listed.</p>
+                  <p className="text-xl font-medium text-slate-500 bg-slate-50 p-10 rounded-2xl border-2 border-slate-200">No backup rails listed yet.</p>
                 ) : (
                   allBackupOptions.map(backup => (
                     <BackupRailCard 
                       key={backup.id}
                       title={backup.label}
-                      whenToUse={sanitizePublicCopy(backup.summary) || "Use when primary platform is restricted."}
-                      tradeoffs={sanitizePublicCopy(backup.tradeoffs) || "Migration effort and potential fee differences."}
+                      whenToUse={sanitizePublicCopy(backup.summary, 'action') || "Before your primary payout rail is restricted."}
+                      riskReduced="Single-platform operational dependency."
+                      tradeoffs={sanitizePublicCopy(backup.tradeoffs, 'action') || "Setup time, implementation complexity, and varied fees."}
                     />
                   ))
                 )}
               </BackupRails>
             </div>
 
-            <div id="evidence" className="scroll-mt-24">
+            <div id="evidence" className="scroll-mt-32">
               <EvidenceAccordion items={redFlagsData.flatMap(rf => rf.evidence).map(ev => ({
-                title: sanitizePublicCopy(ev.source_title) || "Official Policy Document",
+                title: sanitizePublicCopy(ev.source_title, 'summary') || "Official Policy Document",
                 url: ev.source_url || undefined,
-                excerpt: sanitizePublicCopy(ev.excerpt),
+                excerpt: sanitizePublicCopy(ev.excerpt, 'summary'),
                 date: ev.reviewed_at ? new Date(ev.reviewed_at).toLocaleDateString() : "Recent"
               }))} />
             </div>
 
-            <RelatedGuides platforms={relatedPlatforms} />
+            <NextSurvivalGuides platforms={relatedPlatforms} />
 
-            <div id="editorial" className="scroll-mt-24">
+            <div id="editorial" className="scroll-mt-32">
               <EditorialMethodology />
             </div>
 

@@ -1,27 +1,14 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, ShieldAlert, FileText, CheckCircle, Activity } from "lucide-react";
+import { ArrowRight, BookOpen, ShieldAlert, FileText, CheckCircle, Activity, CreditCard } from "lucide-react";
 import { PublicNav, PublicFooter } from "@/components/public/layout";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getPublicPlatforms } from "@/server/polibrawl/services/public-delivery.service";
 
 export const metadata = {
   title: "PoliBrawl — Survival Guides for Platform Risk",
   description:
     "PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.",
-  openGraph: {
-    title: "PoliBrawl — Survival Guides for Platform Risk",
-    description:
-      "PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.",
-    url: "https://polibrawl.com",
-    siteName: "PoliBrawl",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "PoliBrawl — Survival Guides for Platform Risk",
-    description:
-      "PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.",
-  },
 };
 
 const pillars = [
@@ -48,75 +35,95 @@ const pillars = [
   },
 ] as const;
 
-export default function PublicLandingPage() {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "PoliBrawl",
-    url: "https://polibrawl.com",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: "https://polibrawl.com/search?q={search_term_string}",
-      "query-input": "required name=search_term_string",
-    },
-  };
+export default async function PublicLandingPage() {
+  const platforms = await getPublicPlatforms();
+  const latestPlatforms = platforms.slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       <PublicNav activePath="/" />
 
       <main className="flex-1" id="main-content">
         {/* Hero */}
-        <section className="mx-auto max-w-6xl px-4 py-24 lg:px-6 lg:py-32">
-          <div className="max-w-3xl">
-            <p className="text-xs font-bold uppercase tracking-widest text-blue-600 mb-6 flex items-center">
-              <CheckCircle className="w-4 h-4 mr-2" /> Platform Policy Intelligence
+        <section className="mx-auto max-w-[90rem] px-4 py-24 lg:px-8 lg:py-32">
+          <div className="max-w-4xl">
+            <p className="text-sm font-black uppercase tracking-widest text-blue-600 mb-8 flex items-center">
+              <CheckCircle className="w-5 h-5 mr-3" /> Platform Policy Intelligence
             </p>
-            <h1 className="text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl text-balance leading-tight">
+            <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight text-slate-900 leading-[1.05] mb-8">
               Survival guides for platform risk.
             </h1>
-            <p className="mt-6 text-xl leading-relaxed text-slate-600 max-w-2xl">
-              PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for founders, creators, and agencies who depend on online platforms.
+            <p className="text-2xl sm:text-3xl leading-snug text-slate-600 max-w-3xl font-medium mb-12">
+              PoliBrawl turns official platform policies into practical red flags, checklists, and backup plans for people who depend on online platforms.
             </p>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
               <Link
                 href="/platforms"
-                className={cn(buttonVariants({ size: "lg" }), "font-bold text-base px-8 h-12")}
+                className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto font-black text-lg px-10 h-16 rounded-xl")}
               >
-                Browse Survival Guides
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                Browse published guides
+                <ArrowRight className="ml-3 h-5 w-5" aria-hidden="true" />
+              </Link>
+              <Link
+                href="/platforms/stripe"
+                className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto font-bold text-lg px-10 h-16 rounded-xl border-2 border-slate-200 hover:border-slate-900 hover:bg-slate-50")}
+              >
+                <CreditCard className="mr-3 h-5 w-5 text-slate-500" />
+                Start with Payments
               </Link>
             </div>
           </div>
         </section>
 
-        {/* Pillars */}
+        {/* Latest Guides Loop */}
+        <section className="border-t-2 border-slate-100 bg-white py-24">
+          <div className="mx-auto max-w-[90rem] px-4 lg:px-8">
+            <div className="flex items-center justify-between mb-12">
+              <h2 className="text-4xl font-black text-slate-900">Latest survival guides</h2>
+              <Link href="/platforms" className="hidden sm:flex text-lg font-bold text-blue-600 hover:text-blue-800 transition-colors items-center">
+                View all <ArrowRight className="ml-2 w-5 h-5" />
+              </Link>
+            </div>
+            
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+              {latestPlatforms.map(p => (
+                <Link key={p.slug} href={`/platforms/${p.slug}`} className="block group">
+                  <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-8 hover:border-slate-900 hover:shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] transition-all h-full">
+                    <h3 className="text-3xl font-black text-slate-900 mb-4">{p.name}</h3>
+                    <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-8">{p.category.replace(/_/g, ' ')}</p>
+                    <div className="flex items-center text-blue-600 font-bold text-lg group-hover:translate-x-2 transition-transform">
+                      Read playbook <ArrowRight className="w-5 h-5 ml-2" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
         <section
-          className="border-t border-slate-100 bg-slate-50 py-20"
+          className="border-t-2 border-slate-100 bg-slate-900 py-32"
           aria-labelledby="pillars-heading"
         >
-          <div className="mx-auto max-w-6xl px-4 lg:px-6">
+          <div className="mx-auto max-w-[90rem] px-4 lg:px-8">
             <h2
               id="pillars-heading"
-              className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-12"
+              className="text-4xl font-black text-white mb-16"
             >
-              How PoliBrawl Works
+              How it works
             </h2>
-            <div className="grid gap-10 md:grid-cols-3">
+            <div className="grid gap-12 md:grid-cols-3">
               {pillars.map((pillar) => (
-                <div key={pillar.title} className="space-y-4 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                <div key={pillar.title} className="space-y-6 bg-white/5 p-10 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
                   <div
-                    className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${pillar.color}`}
+                    className={`inline-flex h-16 w-16 items-center justify-center rounded-2xl ${pillar.color}`}
                     aria-hidden="true"
                   >
-                    <pillar.icon className="h-6 w-6" />
+                    <pillar.icon className="h-8 w-8" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">{pillar.title}</h3>
-                  <p className="text-sm text-slate-600 leading-relaxed">{pillar.description}</p>
+                  <h3 className="text-2xl font-black text-white">{pillar.title}</h3>
+                  <p className="text-lg text-slate-300 leading-relaxed font-medium">{pillar.description}</p>
                 </div>
               ))}
             </div>
@@ -124,12 +131,12 @@ export default function PublicLandingPage() {
         </section>
 
         {/* Editorial note */}
-        <section className="bg-white border-t border-slate-100 py-16">
-          <div className="mx-auto max-w-6xl px-4 lg:px-6">
-            <div className="flex items-start gap-4 p-6 bg-slate-50 rounded-xl border border-slate-200 max-w-3xl">
-              <FileText className="w-6 h-6 text-slate-400 shrink-0 mt-1" />
-              <p className="text-sm text-slate-600 leading-relaxed">
-                <strong className="font-bold text-slate-900 block mb-1">Editorial Independence</strong>
+        <section className="bg-white py-24">
+          <div className="mx-auto max-w-[90rem] px-4 lg:px-8">
+            <div className="flex items-start gap-6 p-8 bg-slate-50 rounded-2xl border-2 border-slate-200 max-w-4xl">
+              <FileText className="w-8 h-8 text-slate-400 shrink-0 mt-1" />
+              <p className="text-lg text-slate-600 leading-relaxed font-medium">
+                <strong className="font-black text-slate-900 block mb-2 text-xl">Editorial Independence</strong>
                 PoliBrawl is not affiliated with any platform listed in this directory. Our analysis focuses strictly on operational risk. Content is produced independently and does not constitute legal advice.
               </p>
             </div>

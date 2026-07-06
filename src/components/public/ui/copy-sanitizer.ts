@@ -1,4 +1,4 @@
-export function sanitizePublicCopy(text: string | null | undefined): string {
+export function sanitizePublicCopy(text: string | null | undefined, context: 'hero' | 'summary' | 'action' = 'summary'): string {
   if (!text) return "";
 
   const lower = text.toLowerCase();
@@ -18,11 +18,20 @@ export function sanitizePublicCopy(text: string | null | undefined): string {
     "noise score",
     "confidence score",
     "summary meets the",
+    "being reviewed by the polibrawl editorial team",
+    "official survival overview",
+    "editorial team",
   ];
 
   for (const phrase of forbiddenPhrases) {
     if (lower.includes(phrase)) {
-      return "This risk is being reviewed by the PoliBrawl editorial team.";
+      if (context === 'hero') {
+        return "Understand the operational risks, preparation steps, and official policy evidence before depending on this platform.";
+      }
+      if (context === 'summary') {
+        return "This policy area may affect account access, payout timing, or operational continuity. Review the official evidence and prepare backup options before problems occur.";
+      }
+      return "Ensure your operations comply with the platform's standard requirements to avoid disruption.";
     }
   }
 

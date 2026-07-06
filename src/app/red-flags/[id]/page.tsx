@@ -13,10 +13,12 @@ import { PublicNav, PublicFooter, RiskBadge } from "@/components/public/layout";
 import { queryOne } from "@/server/polibrawl/db";
 import type { Platform } from "@/types/polibrawl";
 import {
+  UncomfortableTruth,
+  ExposureChecklist,
   SurvivalPlaybook,
-  PlaybookColumn,
-  TodaysActions,
-  ActionItemCard,
+  PlaybookPhaseCard,
+  WhatToDoToday,
+  TodayActionCard,
   BackupRails,
   BackupRailCard,
   EvidenceAccordion,
@@ -24,7 +26,7 @@ import {
   ReadingProgressNav
 } from "@/components/public/ui/playbook-components";
 import { sanitizePublicCopy } from "@/components/public/ui/copy-sanitizer";
-import { AlertTriangle, ArrowRight } from "lucide-react";
+import { ArrowLeft, Target, AlertTriangle, Shield } from "lucide-react";
 
 async function getPublishedPlatformById(id: string): Promise<Platform | null> {
   return queryOne<Platform>(
@@ -52,7 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!platform) return { title: "Not Found | PoliBrawl" };
 
   const title = `${redFlag.title} | ${platform.name} Survival Playbook`;
-  const description = sanitizePublicCopy(redFlag.summary) || `Policy red flag regarding ${redFlag.title}.`;
+  const description = sanitizePublicCopy(redFlag.summary, 'summary') || `Policy red flag regarding ${redFlag.title}.`;
   const url = `https://polibrawl.com/red-flags/${redFlag.id}`;
 
   return {
@@ -84,7 +86,7 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Directory", item: "https://polibrawl.com/platforms" },
+        { "@type": "ListItem", position: 1, name: "Survival Guides", item: "https://polibrawl.com/platforms" },
         { "@type": "ListItem", position: 2, name: platform.name, item: `https://polibrawl.com/platforms/${platform.slug}` },
         { "@type": "ListItem", position: 3, name: redFlag.title, item: `https://polibrawl.com/red-flags/${redFlag.id}` },
       ],
@@ -93,7 +95,7 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
       "@context": "https://schema.org",
       "@type": "Article",
       headline: redFlag.title,
-      description: sanitizePublicCopy(redFlag.summary),
+      description: sanitizePublicCopy(redFlag.summary, 'summary'),
       author: { "@type": "Organization", name: "PoliBrawl" },
     },
   ];
@@ -109,7 +111,6 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
     impacts.push({ type: "Feature Limitation", desc: "Certain API limits or capabilities may be reduced." });
   }
 
-  // Infer safe generic triggers based on category
   let triggers = [];
   switch (redFlag.category.toLowerCase()) {
     case 'money':
@@ -138,9 +139,9 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
   }
 
   const sanitizedEvidence = evidence.map(ev => ({
-    title: sanitizePublicCopy(ev.source_title) || "Official Policy Document",
+    title: sanitizePublicCopy(ev.source_title, 'summary') || "Official Policy Document",
     url: ev.source_url || undefined,
-    excerpt: sanitizePublicCopy(ev.excerpt),
+    excerpt: sanitizePublicCopy(ev.excerpt, 'summary'),
     date: ev.reviewed_at ? new Date(ev.reviewed_at).toLocaleDateString() : "Recent"
   }));
 
@@ -151,145 +152,143 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
   const afterActions = survivalNotes.filter(sn => sn.note_title.toLowerCase().includes('after') || sn.note_title.toLowerCase().includes('recover'));
 
   const navLinks = [
-    { id: "overview", label: "Overview" },
-    { id: "impact", label: "The Risk & Impact" },
+    { id: "overview", label: "The Risk" },
+    { id: "impact", label: "Operational Impact" },
+    { id: "exposure", label: "Are You Exposed?" },
     { id: "playbook", label: "Survival Playbook" },
-    { id: "actions", label: "Today's Actions" },
-    { id: "backup-rails", label: "Backup Rails" },
-    { id: "evidence", label: "Source Evidence" },
+    { id: "actions", label: "What To Do Today" },
+    { id: "evidence", label: "How Do We Know?" },
   ];
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col font-sans">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <PublicNav />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 lg:px-8 py-10" id="main-content">
+      <main className="flex-1 max-w-[90rem] mx-auto w-full px-4 lg:px-8 py-12" id="main-content">
         
         <Link
           href={`/platforms/${platform.slug}`}
-          className="inline-flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors mb-10 group"
+          className="inline-flex items-center text-sm font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors mb-10 group"
         >
-          <ArrowRight className="w-4 h-4 mr-2 rotate-180 text-slate-400 group-hover:-translate-x-1 transition-transform" />
-          Back to {platform.name} playbook
+          <ArrowLeft className="w-5 h-5 mr-3 text-slate-400 group-hover:-translate-x-2 transition-transform" />
+          Back to {platform.name} Playbook
         </Link>
 
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
+        <div className="flex flex-col lg:flex-row gap-16 items-start">
           
           <ReadingProgressNav links={navLinks} />
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 max-w-4xl">
             
-            <div id="overview" className="mb-16 scroll-mt-24 border-b border-slate-100 pb-12">
-              <div className="flex flex-wrap items-center gap-3 mb-6">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+            <div id="overview" className="mb-20 scroll-mt-32">
+              <div className="flex items-center gap-4 mb-8">
+                <span className="text-sm font-black text-slate-800 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-sm">
                   {CATEGORY_LABELS[redFlag.category] ?? redFlag.category}
                 </span>
-                <span className="text-slate-300">•</span>
                 <RiskBadge level={redFlag.level} />
               </div>
-              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900 mb-6 leading-tight">
+              <h1 className="text-5xl sm:text-6xl font-black tracking-tight text-slate-900 mb-8 leading-tight">
                 {redFlag.title}
               </h1>
               
-              <div className="bg-slate-900 text-white rounded-xl p-6 sm:p-8 my-8 shadow-lg">
-                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center">
-                  <AlertTriangle className="w-4 h-4 mr-2 text-amber-500" /> Uncomfortable Truth
-                </h2>
-                <p className="text-xl sm:text-2xl font-medium leading-snug">{oneTruth}</p>
-              </div>
+              <UncomfortableTruth message={oneTruth} />
 
               {redFlag.summary && (
-                <div className="text-xl text-slate-600 leading-relaxed max-w-3xl mt-8">
-                  <p>{sanitizePublicCopy(redFlag.summary)}</p>
+                <div className="text-2xl text-slate-700 leading-relaxed font-medium mt-12 border-l-4 border-slate-300 pl-6">
+                  <p>{sanitizePublicCopy(redFlag.summary, 'hero')}</p>
                 </div>
               )}
             </div>
 
-            <div id="impact" className="mb-16 scroll-mt-24">
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-8">The Risk & Impact</h2>
+            <div id="impact" className="mb-20 scroll-mt-32">
+              <h2 className="text-4xl font-black tracking-tight text-slate-900 mb-10 flex items-center">
+                <Target className="w-10 h-10 mr-4 text-red-500" />
+                Why Users Get Caught
+              </h2>
               
               {redFlag.why_it_matters && (
-                <div className="text-lg text-slate-700 leading-relaxed mb-10 bg-slate-50 p-6 rounded-xl border border-slate-200">
-                  <strong className="block text-sm font-bold uppercase tracking-widest text-slate-500 mb-3">Why this matters</strong>
-                  {sanitizePublicCopy(redFlag.why_it_matters)}
+                <div className="text-xl text-slate-700 leading-relaxed mb-12 bg-red-50 border-2 border-red-200 p-8 rounded-2xl shadow-sm">
+                  <strong className="block text-sm font-black uppercase tracking-widest text-red-800 mb-3">The Trap</strong>
+                  {sanitizePublicCopy(redFlag.why_it_matters, 'summary')}
                 </div>
               )}
 
-              <div className="grid md:grid-cols-2 gap-8 mb-10">
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4">Common Triggers</h3>
-                  <ul className="space-y-3">
+              <div className="grid md:grid-cols-2 gap-8 mb-12">
+                <div className="bg-white border-2 border-slate-200 rounded-2xl p-8">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center">
+                    <AlertTriangle className="w-5 h-5 mr-3 text-amber-500" />
+                    Common Triggers
+                  </h3>
+                  <ul className="space-y-4">
                     {triggers.map((trigger, i) => (
-                      <li key={i} className="flex items-start text-sm text-slate-700 bg-white border border-slate-200 rounded-lg p-3">
-                        <ArrowRight className="w-4 h-4 text-blue-500 mr-2 shrink-0 mt-0.5" />
+                      <li key={i} className="flex items-start text-lg font-medium text-slate-700">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 mt-2 mr-4 shrink-0" />
                         {trigger}
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div>
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4">Operational Impact</h3>
-                  <ul className="space-y-3">
+                <div className="bg-white border-2 border-slate-200 rounded-2xl p-8">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center">
+                    <Shield className="w-5 h-5 mr-3 text-red-500" />
+                    Operational Impact
+                  </h3>
+                  <ul className="space-y-6">
                     {impacts.map((imp, i) => (
-                      <li key={i} className="flex items-start p-3 border border-slate-200 rounded-lg bg-white shadow-sm">
-                        <div className="w-2 h-2 rounded-full bg-red-500 mt-1.5 mr-3 shrink-0" />
+                      <li key={i} className="flex items-start">
+                        <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center mr-4 shrink-0">
+                          <span className="font-bold text-sm">!</span>
+                        </div>
                         <div>
-                          <strong className="block text-sm text-slate-900">{imp.type}</strong>
-                          <span className="text-sm text-slate-600">{imp.desc}</span>
+                          <strong className="block text-xl font-bold text-slate-900 mb-1">{imp.type}</strong>
+                          <span className="text-lg text-slate-600 font-medium">{imp.desc}</span>
                         </div>
                       </li>
                     ))}
                   </ul>
                 </div>
               </div>
-
-              <div className="mt-10">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4">Primary Targets</h3>
-                <div className="flex flex-wrap gap-2">
-                  {affectedUsers.map((type, i) => (
-                    <span key={i} className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider border border-slate-200">
-                      {type}
-                    </span>
-                  ))}
-                </div>
-              </div>
             </div>
 
-            <div id="playbook" className="scroll-mt-24">
+            <div id="exposure" className="mb-20 scroll-mt-32">
+              <ExposureChecklist items={affectedUsers.map(user => `You are a ${user} heavily dependent on this platform.`)} />
+            </div>
+
+            <div id="playbook" className="scroll-mt-32">
               <SurvivalPlaybook>
-                <PlaybookColumn phase="Before it happens" title="Proactive Defense">
+                <PlaybookPhaseCard phase="Before it happens" title="Proactive Defense">
                   {beforeActions.length > 0 ? (
-                    beforeActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body)}</p>)
+                    beforeActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
                   ) : (
                     <p>Maintain up-to-date incorporation documents, tax ID evidence, and supplier invoices on hand. Implement secondary processors for high-risk product cohorts to diffuse risk.</p>
                   )}
-                </PlaybookColumn>
-                <PlaybookColumn phase="If it hits today" title="Damage Control">
+                </PlaybookPhaseCard>
+                <PlaybookPhaseCard phase="If it hits today" title="Damage Control">
                   {duringActions.length > 0 ? (
-                    duringActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body)}</p>)
+                    duringActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
                   ) : (
                     <p>Immediately pause customer traffic to the affected rail. Do not submit forged or altered documents under panic. Reply precisely and politely to any compliance inquiries within 24 hours.</p>
                   )}
-                </PlaybookColumn>
-                <PlaybookColumn phase="After recovery" title="Post-Mortem">
+                </PlaybookPhaseCard>
+                <PlaybookPhaseCard phase="After recovery" title="Post-Mortem">
                   {afterActions.length > 0 ? (
-                    afterActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body)}</p>)
+                    afterActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
                   ) : (
                     <p>Gradually increase transaction volume back to normal levels. Review the trigger event with your operations team and adjust business logic to avoid repeating the flagged behavior.</p>
                   )}
-                </PlaybookColumn>
+                </PlaybookPhaseCard>
               </SurvivalPlaybook>
             </div>
 
-            <div id="actions" className="scroll-mt-24">
-              <TodaysActions>
+            <div id="actions" className="scroll-mt-32">
+              <WhatToDoToday>
                 {checklists.length === 0 ? (
-                  <ActionItemCard 
+                  <TodayActionCard 
                     title="Audit your account documentation"
                     whyItMatters="Ensures that if a review is triggered, you have exactly the documents the platform expects ready to upload instantly."
                     timeEstimate="30 mins"
@@ -297,39 +296,41 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
                   />
                 ) : (
                   checklists.flatMap(c => c.items.map(item => (
-                    <ActionItemCard 
+                    <TodayActionCard 
                       key={item.label}
-                      title={sanitizePublicCopy(item.label)}
-                      whyItMatters={item.required ? "Mandatory compliance step." : "Recommended operational hygiene."}
+                      title={sanitizePublicCopy(item.label, 'action')}
+                      whyItMatters={item.required ? "Mandatory compliance step based on this specific policy trigger." : "Recommended operational hygiene to reduce risk."}
                       priority={item.required ? "High" : "Medium"}
+                      timeEstimate="15 mins"
                     />
                   )))
                 )}
-              </TodaysActions>
+              </WhatToDoToday>
             </div>
 
-            <div id="backup-rails" className="scroll-mt-24">
+            <div id="backup-rails" className="scroll-mt-32">
               <BackupRails>
                 {backupOptions.length === 0 ? (
-                  <p className="text-slate-500 bg-slate-50 p-6 rounded-xl border border-slate-200">No backup rails listed.</p>
+                  <p className="text-xl font-medium text-slate-500 bg-slate-50 p-10 rounded-2xl border-2 border-slate-200">No backup rails listed.</p>
                 ) : (
                   backupOptions.map(backup => (
                     <BackupRailCard 
                       key={backup.id}
                       title={backup.label}
-                      whenToUse={sanitizePublicCopy(backup.summary) || "Use as an active fallback when this platform is down."}
-                      tradeoffs={sanitizePublicCopy(backup.tradeoffs) || "Migration effort, API refactoring, and fee changes."}
+                      whenToUse={sanitizePublicCopy(backup.summary, 'action') || "Use as an active fallback when this platform goes down."}
+                      riskReduced="Dependency on a single payout provider."
+                      tradeoffs={sanitizePublicCopy(backup.tradeoffs, 'action') || "Migration effort, API refactoring, and fee changes."}
                     />
                   ))
                 )}
               </BackupRails>
             </div>
 
-            <div id="evidence" className="scroll-mt-24">
+            <div id="evidence" className="scroll-mt-32">
               <EvidenceAccordion items={sanitizedEvidence} />
             </div>
 
-            <div id="editorial" className="scroll-mt-24">
+            <div id="editorial" className="scroll-mt-32">
               <EditorialMethodology />
             </div>
 
