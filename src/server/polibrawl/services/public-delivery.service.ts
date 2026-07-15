@@ -1,7 +1,20 @@
 import "server-only";
 
 import { queryMany, queryOne } from "@/server/polibrawl/db";
-import type { Platform, PlatformSurvivalPage, RedFlag, EvidenceItem as Evidence, SurvivalNote, BackupOption, Checklist, ChecklistItem } from "@/types/polibrawl";
+import type {
+  BackupOption,
+  Checklist,
+  ChecklistItem,
+  DependencyScore,
+  EvidenceConfidence,
+  EvidenceItem as Evidence,
+  Platform,
+  PlatformSurvivalPage,
+  RedFlag,
+  ResolutionRoute,
+  RiskTimeline,
+  SurvivalNote,
+} from "@/types/polibrawl";
 
 export async function getPublicPlatforms(): Promise<Platform[]> {
   return queryMany<Platform>(
@@ -28,7 +41,9 @@ export async function getPublicRedFlags(pageId: string): Promise<(RedFlag & { se
     `SELECT rf.*, prf.section_label
      FROM red_flags rf
      JOIN platform_survival_page_red_flags prf ON rf.id = prf.red_flag_id
-     WHERE prf.page_id = $1 AND rf.archived_at IS NULL
+     WHERE prf.page_id = $1
+       AND rf.status = 'published'
+       AND rf.archived_at IS NULL
      ORDER BY prf.display_order ASC`,
     [pageId]
   );
@@ -36,7 +51,18 @@ export async function getPublicRedFlags(pageId: string): Promise<(RedFlag & { se
 
 export async function getPublicRedFlag(redFlagId: string): Promise<RedFlag | null> {
   return queryOne<RedFlag>(
-    `SELECT * FROM red_flags WHERE id = $1 AND archived_at IS NULL`,
+    `SELECT rf.*
+     FROM red_flags rf
+     JOIN platform_survival_page_red_flags prf ON rf.id = prf.red_flag_id
+     JOIN platform_survival_pages psp ON prf.page_id = psp.id
+     JOIN platforms p ON rf.platform_id = p.id
+     WHERE rf.id = $1
+       AND rf.status = 'published'
+       AND rf.archived_at IS NULL
+       AND p.status = 'published'
+       AND psp.archived_at IS NULL
+       AND (psp.status = 'ready_for_publish' OR psp.ready_for_publish = true)
+     LIMIT 1`,
     [redFlagId]
   );
 }
@@ -82,6 +108,56 @@ export async function getPublicChecklists(redFlagId: string): Promise<(Checklist
   }));
 }
 
+export async function getPublicResolutionRoutes(platformId: string): Promise<ResolutionRoute[]> {
+  return queryMany<ResolutionRoute>(
+    `SELECT *
+     FROM resolution_routes
+     WHERE platform_id = $1
+       AND status = 'published'
+       AND archived_at IS NULL
+     ORDER BY display_order ASC, updated_at DESC`,
+    [platformId],
+  );
+}
+
+export async function getPublicDependencyScore(platformId: string): Promise<DependencyScore | null> {
+  return queryOne<DependencyScore>(
+    `SELECT *
+     FROM dependency_scores
+     WHERE platform_id = $1
+       AND status = 'published'
+       AND archived_at IS NULL
+     ORDER BY generated_at DESC, updated_at DESC
+     LIMIT 1`,
+    [platformId],
+  );
+}
+
+export async function getPublicRiskTimelines(platformId: string): Promise<RiskTimeline[]> {
+  return queryMany<RiskTimeline>(
+    `SELECT *
+     FROM risk_timelines
+     WHERE platform_id = $1
+       AND status = 'published'
+       AND archived_at IS NULL
+     ORDER BY display_order ASC, updated_at DESC`,
+    [platformId],
+  );
+}
+
+export async function getPublicEvidenceConfidence(platformId: string): Promise<EvidenceConfidence | null> {
+  return queryOne<EvidenceConfidence>(
+    `SELECT *
+     FROM evidence_confidence
+     WHERE platform_id = $1
+       AND status = 'published'
+       AND archived_at IS NULL
+     ORDER BY last_verified_at DESC NULLS LAST, updated_at DESC
+     LIMIT 1`,
+    [platformId],
+  );
+}
+
 export type SearchResult = {
   type: 'platform' | 'red_flag';
   id: string;
@@ -119,6 +195,8 @@ export async function searchPublic(query: string): Promise<SearchResult[]> {
      JOIN platforms p ON rf.platform_id = p.id
      JOIN platform_survival_pages psp ON p.id = psp.platform_id
      WHERE p.status = 'published' 
+       AND rf.status = 'published'
+       AND psp.archived_at IS NULL
        AND (psp.status = 'ready_for_publish' OR psp.ready_for_publish = true)
        AND rf.archived_at IS NULL
        AND (rf.title ILIKE $1 OR rf.category ILIKE $1 OR rf.summary ILIKE $1)

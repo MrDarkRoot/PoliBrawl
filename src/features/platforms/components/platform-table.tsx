@@ -54,6 +54,12 @@ export function PlatformTable({ platforms }: { platforms: Platform[] }) {
                       >
                         Edit
                       </Link>
+                      <Link
+                        href={`/admin/platforms/${platform.id}/intelligence`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        Intelligence
+                      </Link>
                       <form action={archivePlatformAction}>
                         <input type="hidden" name="platform_id" value={platform.id} />
                         <Button

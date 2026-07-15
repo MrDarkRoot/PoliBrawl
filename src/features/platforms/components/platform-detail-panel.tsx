@@ -17,6 +17,13 @@ import type { Platform } from "@/types/polibrawl";
 
 const futureModules = [
   {
+    label: "Intelligence Layer",
+    href: (platformId: string) => `/admin/platforms/${platformId}/intelligence`,
+    disabled: false,
+    helper: "Manage dependency estimates, escalation routes, timelines, and confidence records.",
+    buttonLabel: "Open",
+  },
+  {
     label: "Sources",
     href: (platformId: string) => `/admin/sources?platform_id=${platformId}`,
     disabled: false,
@@ -171,9 +178,9 @@ export function PlatformDetailPanel({ platform }: { platform: Platform }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Future Modules</CardTitle>
+          <CardTitle>Related Modules</CardTitle>
           <CardDescription>
-            These modules are intentionally not built in Sprint 2.
+            Open the platform-specific editorial tools that hang off the registry record.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3">

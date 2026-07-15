@@ -86,6 +86,7 @@ export const backupOptionTypes = [
 export const backupOptionStatuses = ["draft", "published", "archived"] as const;
 export const checklistStatuses = ["draft", "published", "archived"] as const;
 export const checklistItemStatuses = ["draft", "published", "archived"] as const;
+export const intelligenceStatuses = ["draft", "published", "archived"] as const;
 
 export const researchPacketStatuses = ["draft", "ready", "archived"] as const;
 export type ResearchPacketStatus = (typeof researchPacketStatuses)[number];
@@ -143,6 +144,7 @@ export type BackupOptionType = (typeof backupOptionTypes)[number];
 export type BackupOptionStatus = (typeof backupOptionStatuses)[number];
 export type ChecklistStatus = (typeof checklistStatuses)[number];
 export type ChecklistItemStatus = (typeof checklistItemStatuses)[number];
+export type IntelligenceStatus = (typeof intelligenceStatuses)[number];
 export type CommunitySubmissionStatus = (typeof communitySubmissionStatuses)[number];
 export type PlatformWatcherStatus = (typeof platformWatcherStatuses)[number];
 export type CorrectionStatus = (typeof correctionStatuses)[number];
@@ -283,6 +285,62 @@ export type PlatformSurvivalPageRedFlag = {
   section_label: string | null;
   created_at: IsoDatetime;
   updated_at: IsoDatetime;
+};
+
+export type ResolutionRoute = BaseRecord & {
+  platform_id: Uuid;
+  organization_name: string;
+  organization_type: string;
+  country: string | null;
+  jurisdiction: string | null;
+  official_url: string;
+  eligible_users: string[];
+  eligible_disputes: string[];
+  requirements: string[];
+  steps: string[];
+  fees: string | null;
+  limits: string | null;
+  deadline: string | null;
+  verification_source: string | null;
+  last_verified_at: IsoDatetime | null;
+  status: IntelligenceStatus;
+  published_at: IsoDatetime | null;
+  display_order: number;
+};
+
+export type DependencyScore = BaseRecord & {
+  platform_id: Uuid;
+  score: number;
+  risk_level: RedFlagLevel;
+  factors: string[];
+  explanation: string;
+  generated_at: IsoDatetime;
+  status: IntelligenceStatus;
+  published_at: IsoDatetime | null;
+};
+
+export type RiskTimelineEvent = {
+  label: string;
+  detail: string;
+};
+
+export type RiskTimeline = BaseRecord & {
+  platform_id: Uuid;
+  title: string;
+  events: RiskTimelineEvent[];
+  source: string;
+  status: IntelligenceStatus;
+  published_at: IsoDatetime | null;
+  display_order: number;
+};
+
+export type EvidenceConfidence = BaseRecord & {
+  platform_id: Uuid;
+  score: number;
+  factors: string[];
+  last_verified_at: IsoDatetime | null;
+  status: IntelligenceStatus;
+  published_at: IsoDatetime | null;
 };
 
 export type CandidateReviewHistory = {
@@ -544,6 +602,22 @@ export type PublishChecklistItemDto = {
 
 export type CreatePlatformSurvivalPageDto = Omit<PlatformSurvivalPage, "id" | "created_at" | "updated_at" | "archived_at">;
 export type CreatePlatformSurvivalPageRedFlagDto = Omit<PlatformSurvivalPageRedFlag, "id" | "created_at" | "updated_at">;
+export type CreateResolutionRouteDto = Omit<ResolutionRoute, "id" | "created_at" | "updated_at" | "archived_at" | "published_at"> & {
+  published_at?: IsoDatetime | null;
+};
+export type UpdateResolutionRouteDto = Partial<CreateResolutionRouteDto>;
+export type CreateDependencyScoreDto = Omit<DependencyScore, "id" | "created_at" | "updated_at" | "archived_at" | "published_at"> & {
+  published_at?: IsoDatetime | null;
+};
+export type UpdateDependencyScoreDto = Partial<CreateDependencyScoreDto>;
+export type CreateRiskTimelineDto = Omit<RiskTimeline, "id" | "created_at" | "updated_at" | "archived_at" | "published_at"> & {
+  published_at?: IsoDatetime | null;
+};
+export type UpdateRiskTimelineDto = Partial<CreateRiskTimelineDto>;
+export type CreateEvidenceConfidenceDto = Omit<EvidenceConfidence, "id" | "created_at" | "updated_at" | "archived_at" | "published_at"> & {
+  published_at?: IsoDatetime | null;
+};
+export type UpdateEvidenceConfidenceDto = Partial<CreateEvidenceConfidenceDto>;
 
 export type CreateReviewRequestDto = Omit<ReviewRequest, "id" | "created_at" | "updated_at" | "archived_at" | "reviewed_at"> & {
   reviewed_at?: IsoDatetime | null;
@@ -609,6 +683,18 @@ export type ChecklistListFilters = Partial<
 >;
 export type ChecklistItemListFilters = Partial<
   Pick<ChecklistItem, "id" | "checklist_id" | "status">
+>;
+export type ResolutionRouteListFilters = Partial<
+  Pick<ResolutionRoute, "id" | "platform_id" | "status">
+>;
+export type DependencyScoreListFilters = Partial<
+  Pick<DependencyScore, "id" | "platform_id" | "status" | "risk_level">
+>;
+export type RiskTimelineListFilters = Partial<
+  Pick<RiskTimeline, "id" | "platform_id" | "status">
+>;
+export type EvidenceConfidenceListFilters = Partial<
+  Pick<EvidenceConfidence, "id" | "platform_id" | "status">
 >;
 export type ReviewRequestListFilters = Partial<
   Pick<ReviewRequest, "id" | "platform_id" | "status">
