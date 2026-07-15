@@ -9,10 +9,7 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireAdminAccess();
-  if (auth.kind === "missing-env") {
-    return NextResponse.json({ error: "Supabase environment is not configured." }, { status: 500 });
-  }
+  await requireAdminAccess();
 
   const { id } = await params;
   const source = await getPolicySourceById(id).catch(() => null);

@@ -9,6 +9,7 @@ import {
   partialUpdateSchema,
   uuidSchema,
 } from "@/features/shared/schemas/helpers";
+import { optionalHttpUrlSchema } from "@/features/shared/schemas/http-url";
 
 export const createBackupOptionSchema = z.object({
   platform_id: uuidSchema,
@@ -16,7 +17,7 @@ export const createBackupOptionSchema = z.object({
   option_type: z.enum(backupOptionTypes),
   summary: z.string().trim().min(10).max(3000),
   tradeoffs: z.string().trim().min(10).max(3000),
-  link_url: z.string().url().nullable().optional(),
+  link_url: optionalHttpUrlSchema,
   status: z.enum(backupOptionStatuses).default("draft"),
   published_at: isoDatetimeSchema.nullable().optional(),
   archived_at: isoDatetimeSchema.nullable().optional(),

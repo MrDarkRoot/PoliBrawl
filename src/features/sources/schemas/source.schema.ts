@@ -7,20 +7,12 @@ import {
   sourceTypes,
 } from "@/types/polibrawl";
 import {
+  httpUrlSchema,
   isoDatetimeSchema,
   nullableTrimmedString,
   partialUpdateSchema,
   uuidSchema,
 } from "@/features/shared/schemas/helpers";
-
-const httpUrlSchema = z
-  .string()
-  .trim()
-  .url()
-  .refine((value) => {
-    const protocol = new URL(value).protocol;
-    return protocol === "http:" || protocol === "https:";
-  }, "Use an http or https URL.");
 
 export const createSourceSchema = z
   .object({

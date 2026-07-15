@@ -8,13 +8,6 @@ import { createPlatform, getPlatformBySlug } from "@/server/repositories/platfor
 export async function POST(request: Request) {
   const auth = await requireAdminAccess();
 
-  if (auth.kind === "missing-env") {
-    return NextResponse.json(
-      { error: "Supabase environment is not configured." },
-      { status: 500 },
-    );
-  }
-
   const body = await request.json();
   const parsed = platformSchema.safeParse(body);
 

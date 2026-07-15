@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { httpUrlSchema } from "@/features/shared/schemas/http-url";
 
 export const uuidSchema = z.string().uuid();
 export const isoDatetimeSchema = z.string().datetime();
+export { httpUrlSchema };
 export const slugSchema = z
   .string()
   .trim()

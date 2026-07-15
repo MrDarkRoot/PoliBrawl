@@ -31,7 +31,6 @@ import {
   TodayActionCard,
   WhatToDoToday,
 } from "@/components/public/ui/playbook-components";
-import { sanitizePublicCopy } from "@/components/public/ui/copy-sanitizer";
 import {
   getPublicBackupOptions,
   getPublicChecklists,
@@ -46,7 +45,8 @@ import {
   getPublicSurvivalNotes,
   getPublicSurvivalPage,
 } from "@/server/polibrawl/services/public-delivery.service";
-import type { BackupOption, Platform } from "@/types/polibrawl";
+import { toPublicPlatformDnaFlags } from "@/server/polibrawl/services/public-view-models.shared";
+import type { BackupOption, Platform, SurvivalNote } from "@/types/polibrawl";
 
 const CATEGORY_LABELS: Record<string, string> = {
   payment: "Payment Platform",
@@ -89,6 +89,44 @@ function dedupeById<T extends { id: string }>(items: T[]) {
   return Array.from(new Map(items.map((item) => [item.id, item])).values());
 }
 
+function partitionSurvivalNotes(notes: SurvivalNote[]) {
+  const buckets = {
+    before: [] as SurvivalNote[],
+    during: [] as SurvivalNote[],
+    after: [] as SurvivalNote[],
+  };
+  const uncategorized: SurvivalNote[] = [];
+
+  notes.forEach((note) => {
+    const title = note.note_title.toLowerCase();
+
+    if (title.includes("before") || title.includes("prep")) {
+      buckets.before.push(note);
+      return;
+    }
+
+    if (title.includes("during") || title.includes("review") || title.includes("limit")) {
+      buckets.during.push(note);
+      return;
+    }
+
+    if (title.includes("after") || title.includes("recover")) {
+      buckets.after.push(note);
+      return;
+    }
+
+    uncategorized.push(note);
+  });
+
+  for (const key of ["before", "during", "after"] as const) {
+    if (buckets[key].length === 0 && uncategorized.length > 0) {
+      buckets[key].push(uncategorized.shift() as SurvivalNote);
+    }
+  }
+
+  return buckets;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -102,7 +140,7 @@ export async function generateMetadata({
   }
 
   const description =
-    sanitizePublicCopy(platform.summary, "summary") ||
+    platform.summary ||
     `Survival guide for ${platform.name}. Understand account risk, payout restrictions, and continuity pressure before you depend on it.`;
   const url = `https://polibrawl.com/platforms/${platform.slug}`;
 
@@ -204,18 +242,19 @@ export default async function PlatformSurvivalGuidePage({
 
   const rawSummary = survivalPage?.survival_summary || platform.summary;
   const safeSummary =
-    sanitizePublicCopy(rawSummary, "summary") ||
+    rawSummary ??
     "Review the official evidence, operational triggers, and backup options before this platform becomes a single point of failure.";
   const allChecklists = redFlagsData.flatMap((item) => item.checklists);
   const uniqueBackupOptions = dedupeById(
     redFlagsData.flatMap((item) => item.backupOptions),
   );
   const evidenceItems = redFlagsData.flatMap((item) => item.evidence).map((item) => ({
-    title: sanitizePublicCopy(item.source_title, "summary") || "Official Policy Document",
+    title: item.source_title || "Official Policy Document",
     url: item.source_url || undefined,
-    excerpt: sanitizePublicCopy(item.excerpt, "summary"),
+    excerpt: item.excerpt,
     date: item.reviewed_at ? new Date(item.reviewed_at).toLocaleDateString() : "Recent",
   }));
+  const platformDnaFlags = toPublicPlatformDnaFlags(redFlags);
 
   const isHighRisk =
     redFlags.some((item) => item.level === "high" || item.level === "critical") ||
@@ -229,7 +268,7 @@ export default async function PlatformSurvivalGuidePage({
     ? dependencyRecommendation
     : "Document your compliance evidence and backup path before pressure hits.";
   const prioritySubtext = dependencyScore?.explanation
-    ? sanitizePublicCopy(dependencyScore.explanation, "summary")
+    ? dependencyScore.explanation
     : "Operational continuity depends on what happens when a single platform review interrupts revenue or access.";
 
   let uncomfortableTruth = `Your operations on ${platform.name} may be interrupted before you have time to improvise a backup.`;
@@ -284,7 +323,7 @@ export default async function PlatformSurvivalGuidePage({
     if (newScore > currentScore) {
       riskSnapshots[targetIndex].level = redFlag.level;
       riskSnapshots[targetIndex].description =
-        sanitizePublicCopy(redFlag.summary, "summary") ||
+        redFlag.summary ||
         "Operational disruption may occur under specific conditions.";
     }
   });
@@ -309,34 +348,16 @@ export default async function PlatformSurvivalGuidePage({
       ? dependencyScore.factors
       : defaultExposureSignals;
 
-  const beforeActions = redFlagsData
-    .flatMap((item) => item.survivalNotes)
-    .filter(
-      (note) =>
-        note.note_title.toLowerCase().includes("before") ||
-        note.note_title.toLowerCase().includes("prep"),
-    );
-  const duringActions = redFlagsData
-    .flatMap((item) => item.survivalNotes)
-    .filter(
-      (note) =>
-        note.note_title.toLowerCase().includes("during") ||
-        note.note_title.toLowerCase().includes("review") ||
-        note.note_title.toLowerCase().includes("limit"),
-    );
-  const afterActions = redFlagsData
-    .flatMap((item) => item.survivalNotes)
-    .filter(
-      (note) =>
-        note.note_title.toLowerCase().includes("after") ||
-        note.note_title.toLowerCase().includes("recover"),
-    );
+  const groupedSurvivalNotes = partitionSurvivalNotes(
+    redFlagsData.flatMap((item) => item.survivalNotes),
+  );
+  const beforeActions = groupedSurvivalNotes.before;
+  const duringActions = groupedSurvivalNotes.during;
+  const afterActions = groupedSurvivalNotes.after;
 
   const disclaimerNote =
-    sanitizePublicCopy(
-      survivalPage?.disclaimer_note || platform.disclaimer_text,
-      "summary",
-    ) ||
+    survivalPage?.disclaimer_note ||
+    platform.disclaimer_text ||
     "PoliBrawl is independent editorial guidance based on official source material. It is not legal advice, a guarantee of outcome, or a promise of recovery.";
 
   const navLinks = [
@@ -417,7 +438,7 @@ export default async function PlatformSurvivalGuidePage({
               </div>
 
               <RiskMeterGrid risks={riskSnapshots} />
-              <PlatformDNA redFlags={redFlags} />
+              <PlatformDNA redFlags={platformDnaFlags} />
             </section>
 
             <section className="scroll-mt-32 pt-4" id="caught">
@@ -465,16 +486,13 @@ export default async function PlatformSurvivalGuidePage({
                           href={`/red-flags/${redFlag.id}`}
                           prepareNow={
                             redFlag.survivalNotes[0]
-                              ? sanitizePublicCopy(
-                                  redFlag.survivalNotes[0].note_body,
-                                  "action",
-                                )
-                              : "Document ownership, transaction history, and backup plans before problems begin."
+                              ? redFlag.survivalNotes[0].note_body
+                              : "No published preparation note is available for this risk yet."
                           }
                           severity={redFlag.level}
                           title={redFlag.title}
                           uncomfortableTruth={
-                            sanitizePublicCopy(redFlag.summary, "hero") ||
+                            redFlag.summary ||
                             "Policy pressure can surface abruptly under platform review."
                           }
                           whatCanHappen={whatCanHappen}
@@ -533,48 +551,30 @@ export default async function PlatformSurvivalGuidePage({
                 <PlaybookPhaseCard phase="Before anything happens" title="Prepare Now">
                   {beforeActions.length > 0 ? (
                     beforeActions.map((action) => (
-                      <p key={action.id}>
-                        {sanitizePublicCopy(action.note_body, "action")}
-                      </p>
+                      <p key={action.id}>{action.note_body}</p>
                     ))
                   ) : (
-                    <>
-                      <p>Export transaction records and keep them outside the platform.</p>
-                      <p>Prepare ownership, formation, and banking evidence before you are asked for it.</p>
-                      <p>Keep a second operating path ready for your highest-risk workflow.</p>
-                    </>
+                    <p>No published preparation guidance has been assigned to this phase yet.</p>
                   )}
                 </PlaybookPhaseCard>
 
                 <PlaybookPhaseCard phase="If it happens today" title="Mitigate Damage">
                   {duringActions.length > 0 ? (
                     duringActions.map((action) => (
-                      <p key={action.id}>
-                        {sanitizePublicCopy(action.note_body, "action")}
-                      </p>
+                      <p key={action.id}>{action.note_body}</p>
                     ))
                   ) : (
-                    <>
-                      <p>Use the official review or support path and answer with exact, unmodified records.</p>
-                      <p>Preserve transaction history, support replies, and your complaint timeline.</p>
-                      <p>Do not create duplicate accounts or improvise around a platform restriction.</p>
-                    </>
+                    <p>No published incident-response guidance has been assigned to this phase yet.</p>
                   )}
                 </PlaybookPhaseCard>
 
                 <PlaybookPhaseCard phase="After recovery" title="Reduce Dependency">
                   {afterActions.length > 0 ? (
                     afterActions.map((action) => (
-                      <p key={action.id}>
-                        {sanitizePublicCopy(action.note_body, "action")}
-                      </p>
+                      <p key={action.id}>{action.note_body}</p>
                     ))
                   ) : (
-                    <>
-                      <p>Move one fragile workflow onto a backup path while things are calm.</p>
-                      <p>Keep routine exports and documentation habits active.</p>
-                      <p>Review whether this platform still deserves its current operational weight.</p>
-                    </>
+                    <p>No published recovery guidance has been assigned to this phase yet.</p>
                   )}
                 </PlaybookPhaseCard>
               </SurvivalPlaybook>
@@ -583,12 +583,9 @@ export default async function PlatformSurvivalGuidePage({
             <div className="scroll-mt-32 pt-4" id="actions">
               <WhatToDoToday>
                 {allChecklists.length === 0 ? (
-                  <TodayActionCard
-                    priority="High"
-                    timeEstimate="5-10 min"
-                    title="Export transaction records"
-                    whyItMatters="If review starts unexpectedly, you will need records immediately instead of reconstructing them under pressure."
-                  />
+                  <p className="rounded-2xl border-2 border-slate-200 bg-slate-50 p-10 text-xl font-medium text-slate-500">
+                    No published checklist is available for this platform yet.
+                  </p>
                 ) : (
                   allChecklists.flatMap((checklist) =>
                     checklist.items.map((item) => (
@@ -596,7 +593,7 @@ export default async function PlatformSurvivalGuidePage({
                         key={item.id}
                         priority={item.required ? "High" : "Medium"}
                         timeEstimate="10-15 min"
-                        title={sanitizePublicCopy(item.text || item.label, "action")}
+                        title={item.text || item.label}
                         whyItMatters={
                           item.required
                             ? "Critical preparation step tied to official policy triggers."
@@ -645,14 +642,8 @@ export default async function PlatformSurvivalGuidePage({
                       key={backup.id}
                       riskReduced="Single-platform operational dependency."
                       title={backup.name || backup.label}
-                      tradeoffs={
-                        sanitizePublicCopy(backup.tradeoffs, "action") ||
-                        "Setup time, implementation complexity, and fee differences."
-                      }
-                      whenToUse={
-                        sanitizePublicCopy(backup.summary, "action") ||
-                        "Before your primary operating path is constrained."
-                      }
+                      tradeoffs={backup.tradeoffs}
+                      whenToUse={backup.summary}
                     />
                   ))
                 )}

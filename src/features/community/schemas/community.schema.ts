@@ -13,6 +13,7 @@ import {
   partialUpdateSchema,
   uuidSchema,
 } from "@/features/shared/schemas/helpers";
+import { optionalHttpUrlSchema } from "@/features/shared/schemas/http-url";
 
 const reviewRequestShape = {
   platform_id: uuidSchema.nullable().optional(),
@@ -91,7 +92,7 @@ export const createCorrectionSchema = z.object({
   platform_id: uuidSchema.nullable().optional(),
   issue_type: z.enum(correctionIssueTypes),
   message: z.string().trim().min(10).max(4000),
-  source_url: z.string().url().nullable().optional(),
+  source_url: optionalHttpUrlSchema,
   contact_email: z.string().email().max(254).nullable().optional(),
   status: z.enum(correctionStatuses).default("pending"),
   reviewed_at: isoDatetimeSchema.nullable().optional(),

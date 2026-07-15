@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { platformCategories, platformStatuses } from "@/lib/constants";
+import { httpUrlSchema } from "@/features/shared/schemas/http-url";
 
 export const platformSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -10,7 +11,7 @@ export const platformSchema = z.object({
     .min(2)
     .max(120)
     .regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers, and hyphens only."),
-  website_url: z.string().url(),
+  website_url: httpUrlSchema,
   category: z.enum(platformCategories),
   country: z.string().trim().max(120).optional().nullable(),
   status: z.enum(platformStatuses),

@@ -22,6 +22,41 @@ import {
   autoAttachReadyRedFlagsToPage,
   updatePageReadiness
 } from "@/server/polibrawl/services/survival-page-composer.service";
+import { validateEditorialField } from "@/server/polibrawl/services/editorial/editorial-quality-validator";
+
+function getSurvivalPageEditorialIssues(input: {
+  summary: string | null | undefined;
+  editorial_intro: string | null | undefined;
+  survival_summary: string | null | undefined;
+  disclaimer_note: string | null | undefined;
+}) {
+  return [
+    ...validateEditorialField({
+      label: "Page summary",
+      value: input.summary,
+      required: false,
+      minLength: 20,
+    }),
+    ...validateEditorialField({
+      label: "Editorial intro",
+      value: input.editorial_intro,
+      required: false,
+      minLength: 20,
+    }),
+    ...validateEditorialField({
+      label: "Survival summary",
+      value: input.survival_summary,
+      required: false,
+      minLength: 40,
+    }),
+    ...validateEditorialField({
+      label: "Disclaimer note",
+      value: input.disclaimer_note,
+      required: false,
+      minLength: 20,
+    }),
+  ];
+}
 
 export async function createSurvivalPageAction(prevState: unknown, formData: FormData): Promise<{ success: boolean; error: string | null; id?: string; }> {
   await requireAdminAccess();
@@ -37,6 +72,16 @@ export async function createSurvivalPageAction(prevState: unknown, formData: For
     last_reviewed_at: formData.get("last_reviewed_at"),
   });
   if (!parsed.success) return { success: false, error: "Invalid data" };
+
+  const editorialIssues = getSurvivalPageEditorialIssues({
+    summary: parsed.data.summary,
+    editorial_intro: parsed.data.editorial_intro,
+    survival_summary: parsed.data.survival_summary,
+    disclaimer_note: parsed.data.disclaimer_note,
+  });
+  if (editorialIssues.length > 0) {
+    return { success: false, error: editorialIssues[0] };
+  }
   
   const page = await createPlatformSurvivalPage({
     platform_id: parsed.data.platformId,
@@ -70,6 +115,16 @@ export async function updateSurvivalPageAction(prevState: unknown, formData: For
     last_reviewed_at: formData.get("last_reviewed_at"),
   });
   if (!parsed.success) return { success: false, error: "Invalid data" };
+
+  const editorialIssues = getSurvivalPageEditorialIssues({
+    summary: parsed.data.summary,
+    editorial_intro: parsed.data.editorial_intro,
+    survival_summary: parsed.data.survival_summary,
+    disclaimer_note: parsed.data.disclaimer_note,
+  });
+  if (editorialIssues.length > 0) {
+    return { success: false, error: editorialIssues[0] };
+  }
   
   await updatePlatformSurvivalPage(parsed.data.id, {
     slug: parsed.data.slug,

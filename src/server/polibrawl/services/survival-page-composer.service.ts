@@ -11,6 +11,7 @@ import {
   addRedFlagToPage 
 } from "../repositories/platform-survival-page-red-flag.repository";
 import { evaluateDraftRedFlag } from "./red-flag-quality.service";
+import { evaluatePlatformPublicationReadinessForPage } from "./platform-publication-readiness.service";
 import type { Uuid, RedFlag } from "@/types/polibrawl";
 import { findPlatformById } from "../repositories/platform.repository";
 
@@ -29,72 +30,19 @@ export type PageQualityEvaluation = {
 export async function evaluatePlatformSurvivalPage(pageId: Uuid): Promise<PageQualityEvaluation> {
   const page = await findPlatformSurvivalPageById(pageId);
   if (!page) throw new Error("Page not found");
-
-  const platform = await findPlatformById(page.platform_id);
-  
-  const pageRedFlags = await listPageRedFlags(pageId);
-  
-  const warnings: string[] = [];
-  const errors: string[] = [];
-  const notReadyRedFlags = [];
-  let readyRedFlagsCount = 0;
-  let rfScoreSum = 0;
-
-  if (!platform) errors.push("Missing Platform");
-  else if (platform.status === 'archived') errors.push("Platform is archived");
-  
-  if (!page.title) errors.push("Missing Title");
-  if (!page.summary) warnings.push("Missing Summary");
-  if (!page.disclaimer_note) errors.push("Missing Disclaimer Note");
-  if (!page.last_reviewed_at) errors.push("Missing Last Reviewed Date");
-  
-  if (pageRedFlags.length === 0) {
-    errors.push("Missing Red Flags: At least one red flag must be attached");
-  } else if (pageRedFlags.length > 7) {
-    warnings.push("Too Many Red Flags: Consider keeping the survival page under 7 red flags to prevent user fatigue");
-  }
-
-  for (const prf of pageRedFlags) {
-    const rf = prf.red_flag;
-    if (rf.status === 'archived') {
-      errors.push(`Archived Red Flag attached: ${rf.title}`);
-      continue;
-    }
-    const rfEval = await evaluateDraftRedFlag(rf.id);
-    if (!rfEval.ready_for_publish) {
-      notReadyRedFlags.push({
-        id: rf.id,
-        title: rf.title,
-        reasons: rfEval.errors
-      });
-      errors.push(`Attached Red Flag "${rf.title}" is not ready for publish`);
-    } else {
-      readyRedFlagsCount++;
-    }
-    rfScoreSum += rfEval.score;
-  }
-
-  const ready_for_publish = errors.length === 0;
-  
-  // Calculate average RF score + page deductions
-  let score = 100;
-  if (pageRedFlags.length > 0) {
-    score = rfScoreSum / pageRedFlags.length;
-  }
-  score = score - (errors.length * 15) - (warnings.length * 5);
-  if (score < 0) score = 0;
-  if (score > 100) score = 100;
+  const evaluation = await evaluatePlatformPublicationReadinessForPage(pageId);
+  const score = Math.max(0, 100 - evaluation.errors.length * 12 - evaluation.warnings.length * 4);
 
   return {
     pageId,
     platformId: page.platform_id,
-    ready_for_publish,
+    ready_for_publish: evaluation.ready,
     score: Math.round(score),
-    errors,
-    warnings,
-    attachedRedFlagsCount: pageRedFlags.length,
-    readyRedFlagsCount,
-    notReadyRedFlags
+    errors: evaluation.errors,
+    warnings: evaluation.warnings,
+    attachedRedFlagsCount: evaluation.attachedRedFlagsCount,
+    readyRedFlagsCount: evaluation.publishedRedFlagsCount,
+    notReadyRedFlags: evaluation.notReadyRedFlags,
   };
 }
 

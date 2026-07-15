@@ -1,12 +1,13 @@
 import "server-only";
 
-import { redirect } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
-import { hasSupabaseEnv, getBootstrapOwnerEmails } from "@/lib/env";
+import { evaluateAdminAccess } from "@/lib/auth-policy";
+import { hasSupabaseEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { AdminRole, Profile } from "@/types/domain";
+import type { Profile } from "@/types/domain";
 
 type AuthContext =
   | {
@@ -18,7 +19,9 @@ type AuthContext =
       kind: "missing-env";
     };
 
-async function ensureProfile(user: User) {
+type ConfiguredAuthContext = Extract<AuthContext, { kind: "configured" }>;
+
+async function getProfile(user: User) {
   const adminClient = createAdminSupabaseClient();
 
   const { data: existing, error: existingError } = await adminClient
@@ -31,33 +34,7 @@ async function ensureProfile(user: User) {
     throw existingError;
   }
 
-  if (existing) {
-    return existing;
-  }
-
-  const ownerEmails = getBootstrapOwnerEmails();
-  const fallbackRole: AdminRole =
-    ownerEmails.includes(user.email?.toLowerCase() ?? "") ? "owner" : "viewer";
-
-  const { data, error } = await adminClient
-    .from("profiles")
-    .upsert(
-      {
-        id: user.id,
-        email: user.email ?? null,
-        username: user.user_metadata?.user_name ?? user.email ?? null,
-        role: fallbackRole,
-      },
-      { onConflict: "id" },
-    )
-    .select("*")
-    .single();
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return existing;
 }
 
 export async function getAuthContext(): Promise<AuthContext> {
@@ -74,7 +51,11 @@ export async function getAuthContext(): Promise<AuthContext> {
     redirect("/login");
   }
 
-  const profile = await ensureProfile(user);
+  const profile = await getProfile(user);
+
+  if (!profile) {
+    redirect("/login?error=role");
+  }
 
   return {
     kind: "configured",
@@ -83,16 +64,67 @@ export async function getAuthContext(): Promise<AuthContext> {
   };
 }
 
-export async function requireAdminAccess() {
-  const context = await getAuthContext();
-
-  if (context.kind === "missing-env") {
-    return context;
+export async function getOptionalAuthContext(): Promise<
+  | { kind: "configured"; user: User; profile: Profile }
+  | { kind: "anonymous" }
+  | { kind: "missing-env" }
+> {
+  if (!hasSupabaseEnv()) {
+    return { kind: "missing-env" };
   }
 
-  if (context.profile.role === "viewer") {
-    redirect("/login?error=role");
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { kind: "anonymous" };
   }
 
-  return context;
+  try {
+    const profile = await getProfile(user);
+    if (!profile) {
+      return { kind: "anonymous" };
+    }
+
+    return {
+      kind: "configured",
+      user,
+      profile,
+    };
+  } catch {
+    return { kind: "anonymous" };
+  }
+}
+
+export async function requireAdminAccess(): Promise<ConfiguredAuthContext> {
+  const hasServerEnv = hasSupabaseEnv();
+
+  if (!hasServerEnv) {
+    forbidden();
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const profile = user ? await getProfile(user) : null;
+  const accessDecision = evaluateAdminAccess({
+    hasServerEnv,
+    hasUser: Boolean(user),
+    hasProfile: Boolean(profile),
+    role: profile?.role,
+  });
+
+  if (!accessDecision.allowed || !user || !profile) {
+    forbidden();
+  }
+
+  return {
+    kind: "configured" as const,
+    user,
+    profile,
+  };
 }

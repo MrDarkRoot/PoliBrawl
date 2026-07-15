@@ -1,34 +1,35 @@
 import fs from "node:fs";
-import { Client } from "pg";
 import path from "node:path";
 
-const connectionString = process.env.DATABASE_URL;
+import {
+  applyTrackedMigrationFile,
+  createPolibrawlClient,
+  loadStandardEnvFiles,
+  resolveRepoPath,
+} from "./lib/polibrawl-db.mjs";
 
-if (!connectionString) {
-  console.error("DATABASE_URL is required to apply additive schema");
-  process.exit(1);
-}
+await loadStandardEnvFiles();
 
-// Accept a specific file as argument, or default to research packets
-const sqlFile = process.argv[2] ?? "scripts/sql/add-research-packets.sql";
-const resolvedPath = path.resolve(sqlFile);
+const requestedFile = process.argv[2] ?? "scripts/sql/add-research-packets.sql";
+const resolvedPath = path.isAbsolute(requestedFile)
+  ? requestedFile
+  : resolveRepoPath(requestedFile);
 
 if (!fs.existsSync(resolvedPath)) {
   console.error(`SQL file not found: ${resolvedPath}`);
   process.exit(1);
 }
 
-const sql = fs.readFileSync(resolvedPath, "utf-8");
+const client = createPolibrawlClient();
 
-async function main() {
-  const client = new Client({ connectionString });
+try {
   await client.connect();
-  try {
-    await client.query(sql);
-    console.log(`Migration applied successfully: ${sqlFile}`);
-  } finally {
-    await client.end();
-  }
+  const result = await applyTrackedMigrationFile(client, resolvedPath);
+  console.log(
+    result.applied
+      ? `Migration applied successfully: ${result.name}`
+      : `Migration already recorded, nothing applied: ${result.name}`,
+  );
+} finally {
+  await client.end();
 }
-
-main().catch(console.error);

@@ -12,9 +12,6 @@ import { runDiscovery } from "@/server/services/discovery/engine";
 
 export async function POST(request: Request) {
   const auth = await requireAdminAccess();
-  if (auth.kind === "missing-env") {
-    return NextResponse.json({ error: "Supabase environment is not configured." }, { status: 500 });
-  }
 
   const url = new URL(request.url);
   const platformId = url.searchParams.get("platformId");

@@ -7,13 +7,14 @@ import {
   partialUpdateSchema,
   uuidSchema,
 } from "@/features/shared/schemas/helpers";
+import { optionalHttpUrlSchema } from "@/features/shared/schemas/http-url";
 
 export const createEvidenceSchema = z.object({
   red_flag_id: uuidSchema,
   source_id: uuidSchema,
   excerpt: z.string().trim().min(10).max(5000),
   source_title: z.string().trim().min(2).max(300),
-  source_url: z.string().url().nullable().optional(),
+  source_url: optionalHttpUrlSchema,
   notes: nullableTrimmedString(2000),
   sort_order: z.number().int().min(0).default(0),
   status: z.enum(evidenceStatuses).default("draft"),

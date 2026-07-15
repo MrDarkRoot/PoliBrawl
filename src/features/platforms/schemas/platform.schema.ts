@@ -11,13 +11,14 @@ import {
   partialUpdateSchema,
   slugSchema,
 } from "@/features/shared/schemas/helpers";
+import { httpUrlSchema } from "@/features/shared/schemas/http-url";
 
 export const createPlatformSchema = z.object({
   slug: slugSchema,
   name: z.string().trim().min(2).max(160),
   category: z.enum(platformCategories),
   status: z.enum(platformStatuses).default("draft"),
-  website_url: z.string().url(),
+  website_url: httpUrlSchema,
   summary: nullableTrimmedString(5000),
   main_level: z.enum(redFlagLevels).nullable().optional(),
   disclaimer_text: nullableTrimmedString(5000),

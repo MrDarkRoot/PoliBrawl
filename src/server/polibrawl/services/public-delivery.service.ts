@@ -1,6 +1,13 @@
 import "server-only";
 
 import { queryMany, queryOne } from "@/server/polibrawl/db";
+import { isPlatformPubliclyReady } from "@/server/polibrawl/services/platform-publication-readiness.service";
+import {
+  toPublicPageRedFlag,
+  toPublicRedFlagDetail,
+  type PublicPageRedFlag,
+  type PublicRedFlagDetail,
+} from "@/server/polibrawl/services/public-view-models.shared";
 import type {
   BackupOption,
   Checklist,
@@ -17,16 +24,44 @@ import type {
 } from "@/types/polibrawl";
 
 export async function getPublicPlatforms(): Promise<Platform[]> {
-  return queryMany<Platform>(
-    `SELECT * FROM platforms WHERE status = 'published' ORDER BY name ASC`
+  const platforms = await queryMany<Platform>(
+    `SELECT * FROM platforms WHERE status = 'published' ORDER BY name ASC`,
   );
+
+  const readiness = await Promise.all(
+    platforms.map(async (platform) => ({
+      platform,
+      ready: await isPlatformPubliclyReady(platform.id),
+    })),
+  );
+
+  return readiness.filter((item) => item.ready).map((item) => item.platform);
+}
+
+export async function getPublicPlatformById(id: string): Promise<Platform | null> {
+  const platform = await queryOne<Platform>(
+    `SELECT * FROM platforms WHERE id = $1 AND status = 'published'`,
+    [id],
+  );
+
+  if (!platform) {
+    return null;
+  }
+
+  return (await isPlatformPubliclyReady(platform.id)) ? platform : null;
 }
 
 export async function getPublicPlatformBySlug(slug: string): Promise<Platform | null> {
-  return queryOne<Platform>(
+  const platform = await queryOne<Platform>(
     `SELECT * FROM platforms WHERE slug = $1 AND status = 'published'`,
     [slug]
   );
+
+  if (!platform) {
+    return null;
+  }
+
+  return (await isPlatformPubliclyReady(platform.id)) ? platform : null;
 }
 
 export async function getPublicSurvivalPage(platformId: string): Promise<PlatformSurvivalPage | null> {
@@ -36,22 +71,41 @@ export async function getPublicSurvivalPage(platformId: string): Promise<Platfor
   );
 }
 
-export async function getPublicRedFlags(pageId: string): Promise<(RedFlag & { section_label: string | null })[]> {
-  return queryMany<RedFlag & { section_label: string | null }>(
-    `SELECT rf.*, prf.section_label
+export async function getPublicRedFlags(pageId: string): Promise<PublicPageRedFlag[]> {
+  const redFlags = await queryMany<PublicPageRedFlag>(
+    `SELECT
+       rf.id,
+       rf.platform_id,
+       rf.slug,
+       rf.title,
+       rf.category,
+       rf.level,
+       rf.summary,
+       rf.why_it_matters,
+       prf.section_label
      FROM red_flags rf
      JOIN platform_survival_page_red_flags prf ON rf.id = prf.red_flag_id
      WHERE prf.page_id = $1
        AND rf.status = 'published'
        AND rf.archived_at IS NULL
      ORDER BY prf.display_order ASC`,
-    [pageId]
+    [pageId],
   );
+
+  return redFlags.map(toPublicPageRedFlag);
 }
 
-export async function getPublicRedFlag(redFlagId: string): Promise<RedFlag | null> {
-  return queryOne<RedFlag>(
-    `SELECT rf.*
+export async function getPublicRedFlag(redFlagId: string): Promise<PublicRedFlagDetail | null> {
+  const redFlag = await queryOne<PublicRedFlagDetail>(
+    `SELECT
+       rf.id,
+       rf.platform_id,
+       rf.slug,
+       rf.title,
+       rf.category,
+       rf.level,
+       rf.summary,
+       rf.why_it_matters
      FROM red_flags rf
      JOIN platform_survival_page_red_flags prf ON rf.id = prf.red_flag_id
      JOIN platform_survival_pages psp ON prf.page_id = psp.id
@@ -65,6 +119,14 @@ export async function getPublicRedFlag(redFlagId: string): Promise<RedFlag | nul
      LIMIT 1`,
     [redFlagId]
   );
+
+  if (!redFlag) {
+    return null;
+  }
+
+  return (await isPlatformPubliclyReady(redFlag.platform_id))
+    ? toPublicRedFlagDetail(redFlag)
+    : null;
 }
 
 export async function getPublicEvidence(redFlagId: string): Promise<Evidence[]> {
@@ -178,6 +240,10 @@ export async function searchPublic(query: string): Promise<SearchResult[]> {
   );
   
   for (const p of platforms) {
+    if (!(await isPlatformPubliclyReady(p.id))) {
+      continue;
+    }
+
     results.push({
       type: 'platform',
       id: p.id,
@@ -205,6 +271,10 @@ export async function searchPublic(query: string): Promise<SearchResult[]> {
   );
 
   for (const rf of redFlags) {
+    if (!(await isPlatformPubliclyReady(rf.platform_id))) {
+      continue;
+    }
+
     results.push({
       type: 'red_flag',
       id: rf.id,

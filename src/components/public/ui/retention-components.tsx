@@ -171,7 +171,7 @@ export function RelatedGuidesLoop({
   return (
     <div className="mt-24 border-t-2 border-slate-900 pt-16">
       <h2 className="text-4xl font-black text-slate-900 mb-4">Check another platform before you depend on it</h2>
-      <p className="text-xl text-slate-600 mb-12 font-medium">Platform policies are a web. Don't leave your backup rails exposed.</p>
+      <p className="text-xl text-slate-600 mb-12 font-medium">Platform policies are a web. Don&apos;t leave your backup rails exposed.</p>
       
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {relatedPlatforms.map(p => (

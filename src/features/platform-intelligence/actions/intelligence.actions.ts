@@ -8,12 +8,14 @@ import {
   archiveDependencyScore,
   createDependencyScore,
   findDependencyScoreById,
+  listDependencyScoresByPlatform,
   updateDependencyScore,
 } from "@/server/polibrawl/repositories/dependency-score.repository";
 import {
   archiveEvidenceConfidence,
   createEvidenceConfidence,
   findEvidenceConfidenceById,
+  listEvidenceConfidenceByPlatform,
   updateEvidenceConfidence,
 } from "@/server/polibrawl/repositories/evidence-confidence.repository";
 import {
@@ -162,6 +164,18 @@ export async function upsertDependencyScoreAction(
     throw new Error("Dependency score not found for this platform.");
   }
 
+  if (parsed.data.status === "published") {
+    const publishedSibling = (await listDependencyScoresByPlatform(platformId)).find(
+      (item) => item.status === "published" && item.archived_at === null && item.id !== existing?.id,
+    );
+
+    if (publishedSibling) {
+      throw new Error(
+        "Archive the existing published dependency score before publishing another one.",
+      );
+    }
+  }
+
   const generatedAt =
     normalizeOptionalDatetime(formData.get("generated_at")) ??
     existing?.generated_at ??
@@ -278,6 +292,18 @@ export async function upsertEvidenceConfidenceAction(
   const existing = confidenceId ? await findEvidenceConfidenceById(confidenceId) : null;
   if (confidenceId && (!existing || existing.platform_id !== platformId)) {
     throw new Error("Evidence confidence record not found for this platform.");
+  }
+
+  if (parsed.data.status === "published") {
+    const publishedSibling = (await listEvidenceConfidenceByPlatform(platformId)).find(
+      (item) => item.status === "published" && item.archived_at === null && item.id !== existing?.id,
+    );
+
+    if (publishedSibling) {
+      throw new Error(
+        "Archive the existing published evidence confidence record before publishing another one.",
+      );
+    }
   }
 
   const payload = {

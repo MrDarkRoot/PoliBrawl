@@ -1,13 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-import { getSupabasePublicEnv } from "@/lib/env";
+import { getSupabasePublicEnv, hasSupabaseEnv } from "@/lib/env";
 
 export async function proxy(request: NextRequest) {
   const env = getSupabasePublicEnv();
 
   if (!env) {
+    if (request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname.startsWith("/api/")) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
     return NextResponse.next({ request });
+  }
+
+  if (
+    !hasSupabaseEnv() &&
+    (request.nextUrl.pathname.startsWith("/admin") ||
+      request.nextUrl.pathname.startsWith("/api/"))
+  ) {
+    return new NextResponse("Forbidden", { status: 403 });
   }
 
   let response = NextResponse.next({ request });

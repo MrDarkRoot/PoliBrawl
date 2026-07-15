@@ -1,12 +1,13 @@
 import { z } from "zod";
 
+import { httpUrlSchema, optionalHttpUrlSchema } from "@/features/shared/schemas/http-url";
 import { documentTypes, sourceStatuses, sourceTiers } from "@/lib/constants";
 
 export const sourceSchema = z.object({
   platform_id: z.string().uuid(),
   title: z.string().trim().max(300).optional().nullable(),
-  url: z.string().url(),
-  final_url: z.string().url().optional().nullable(),
+  url: httpUrlSchema,
+  final_url: optionalHttpUrlSchema,
   document_type: z.enum(documentTypes),
   source_tier: z.enum(sourceTiers),
   use_for_scoring: z.boolean(),

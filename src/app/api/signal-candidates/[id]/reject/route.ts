@@ -12,9 +12,6 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireAdminAccess();
-  if (auth.kind === "missing-env") {
-    return NextResponse.json({ error: "Supabase environment is not configured." }, { status: 500 });
-  }
 
   const { id } = await params;
   const candidate = await getSignalCandidateById(id).catch(() => null);

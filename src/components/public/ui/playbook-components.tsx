@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { ChevronDown, FileText, AlertTriangle, CheckSquare, Zap, ArrowRight, BookOpen, ExternalLink, Activity, Info, Link as LinkIcon, Compass, Target, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { RiskBadge } from "@/components/public/layout";
+import { RiskBadge } from "@/components/public/ui/risk-badge";
 
 export function SurvivalGuideHero({
   name,
@@ -14,6 +14,7 @@ export function SurvivalGuideHero({
   lastReviewed,
   uncomfortableTruth,
   summary,
+  children,
 }: {
   name: string;
   category: string;
@@ -22,6 +23,7 @@ export function SurvivalGuideHero({
   lastReviewed: string;
   uncomfortableTruth: string;
   summary: string;
+  children?: React.ReactNode;
 }) {
   return (
     <header className="mb-16 border-b-2 border-slate-900 pb-12 pt-6">
@@ -46,6 +48,12 @@ export function SurvivalGuideHero({
           <p className="text-xl sm:text-2xl text-slate-600 leading-relaxed font-medium max-w-3xl">
             {summary}
           </p>
+
+          {children && (
+            <div className="pt-4">
+              {children}
+            </div>
+          )}
         </div>
         
         {websiteUrl && (

@@ -38,10 +38,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
 DATABASE_URL=...
 EDITORIAL_SITE_URL=http://localhost:3000
-DEV_BOOTSTRAP_OWNER_EMAILS=your-admin-email@example.com
 ```
-
-`DEV_BOOTSTRAP_OWNER_EMAILS` should include the email you want to use for the first admin login. The app uses it to bootstrap the first `profiles.role` as `owner`.
 
 ## 6. Run schema
 
@@ -49,7 +46,16 @@ DEV_BOOTSTRAP_OWNER_EMAILS=your-admin-email@example.com
 npm run db:apply-schema
 ```
 
-This applies the existing `schema.sql` to the Supabase Postgres database.
+This applies the canonical PoliBrawl database workflow:
+
+1. `schema.polibrawl.sql`
+2. tracked additive migrations in `scripts/sql/*.sql`
+
+After schema apply, verify required tables exist:
+
+```bash
+npm run db:health
+```
 
 ## 7. Run dev server
 
@@ -64,10 +70,11 @@ Open the local URL printed by Next.js.
 1. Open Supabase dashboard.
 2. Go to `Authentication` → `Users`.
 3. Create a user manually with email and password.
-4. Use the same email address you placed in `DEV_BOOTSTRAP_OWNER_EMAILS`.
-5. Sign in through `/login` in the local app.
+4. Create the matching `profiles` row manually before using `/admin`.
+5. Set `profiles.role` to one of: `owner`, `admin`, or `editor`.
+6. Sign in through `/login` in the local app.
 
-On first successful sign-in, the app will create the matching `profiles` row automatically.
+Admin access now fails closed. Missing auth environment, missing session, missing profile, or non-admin role returns `403`.
 
 ## 9. Test the Wise pipeline using `TESTING.md`
 

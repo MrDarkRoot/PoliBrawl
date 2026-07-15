@@ -10,10 +10,17 @@ import {
   findPlatformById,
   updatePlatform,
 } from "@/server/polibrawl/repositories/platform.repository";
+import { findPlatformSurvivalPageByPlatformId } from "@/server/polibrawl/repositories/platform-survival-page.repository";
+import {
+  evaluatePlatformPublicationSnapshot,
+  loadPlatformPublicationSnapshot,
+} from "@/server/polibrawl/services/platform-publication-readiness.service";
+import { validateEditorialField } from "@/server/polibrawl/services/editorial/editorial-quality-validator";
 import {
   createPlatformSchema,
   updatePlatformSchema,
 } from "@/features/platforms/schemas/platform.schema";
+import type { Platform } from "@/types/polibrawl";
 
 export type PlatformActionState = {
   message: string | null;
@@ -96,6 +103,26 @@ function toActionState(message: string, fieldErrors: Record<string, string[] | u
   } satisfies PlatformActionState;
 }
 
+function toPublishGateState(errors: string[]) {
+  const message = errors.slice(0, 3).join(" ");
+
+  return toActionState(
+    message || "Cannot publish this platform until the survival page passes the public readiness checks.",
+    {
+      status: errors.length > 0 ? errors.slice(0, 5) : undefined,
+    },
+  );
+}
+
+function getPlatformEditorialIssues(summary: string | null | undefined) {
+  return validateEditorialField({
+    label: "Platform summary",
+    value: summary,
+    required: false,
+    minLength: 40,
+  });
+}
+
 function isUniqueViolation(error: unknown) {
   return (
     typeof error === "object" &&
@@ -118,6 +145,20 @@ export async function createPlatformAction(
       "Please correct the highlighted fields and try again.",
       parsed.error.flatten().fieldErrors,
     );
+  }
+
+  const editorialIssues = getPlatformEditorialIssues(parsed.data.summary);
+  if (editorialIssues.length > 0) {
+    return toActionState(editorialIssues[0], {
+      summary: editorialIssues,
+    });
+  }
+
+  if (parsed.data.status === "published") {
+    return toPublishGateState([
+      "Create the platform as a draft first.",
+      "Publishing requires an attached survival page, active official source, published red flags, approved evidence, published survival notes, and published checklist items.",
+    ]);
   }
 
   try {
@@ -157,8 +198,47 @@ export async function updatePlatformAction(
     );
   }
 
+  const editorialIssues = getPlatformEditorialIssues(parsed.data.summary);
+  if (editorialIssues.length > 0) {
+    return toActionState(editorialIssues[0], {
+      summary: editorialIssues,
+    });
+  }
+
+  const normalizedUpdate = normalizeUpdatePlatformInput(parsed.data);
+  const candidatePlatform: Platform = {
+    ...existing,
+    ...normalizedUpdate,
+    status: parsed.data.status ?? existing.status,
+    summary:
+      "summary" in normalizedUpdate
+        ? (normalizedUpdate.summary as Platform["summary"])
+        : existing.summary,
+    website_url:
+      "website_url" in normalizedUpdate
+        ? (normalizedUpdate.website_url as Platform["website_url"])
+        : existing.website_url,
+    last_reviewed_at:
+      "last_reviewed_at" in normalizedUpdate
+        ? (normalizedUpdate.last_reviewed_at as Platform["last_reviewed_at"])
+        : existing.last_reviewed_at,
+  };
+
+  if (candidatePlatform.status === "published") {
+    const survivalPage = await findPlatformSurvivalPageByPlatformId(platformId);
+    const snapshot = await loadPlatformPublicationSnapshot(platformId, survivalPage);
+    const readiness = evaluatePlatformPublicationSnapshot({
+      ...snapshot,
+      platform: candidatePlatform,
+    });
+
+    if (!readiness.ready) {
+      return toPublishGateState(readiness.errors);
+    }
+  }
+
   try {
-    await updatePlatform(platformId, normalizeUpdatePlatformInput(parsed.data));
+    await updatePlatform(platformId, normalizedUpdate);
     revalidatePath("/admin");
     revalidatePath("/admin/platforms");
     revalidatePath(`/admin/platforms/${platformId}`);

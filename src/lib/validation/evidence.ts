@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { httpUrlSchema } from "@/features/shared/schemas/http-url";
 import { evidenceStatuses, evidenceVisibilityLevels, signalConfidenceLevels, signalLevels, signalCategories } from "@/lib/constants";
 
 export const signalApprovalSchema = z.object({
@@ -18,7 +19,7 @@ export const evidenceSchema = z.object({
   policy_source_id: z.string().uuid(),
   document_version_id: z.string().uuid().optional().nullable(),
   clause_excerpt: z.string().trim().min(10),
-  source_url: z.string().url(),
+  source_url: httpUrlSchema,
   document_title: z.string().trim().max(300).optional().nullable(),
   review_date: z.string().date(),
   explanation: z.string().trim().min(10).max(6000),

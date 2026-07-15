@@ -751,6 +751,9 @@ create table if not exists dependency_scores (
 create index if not exists idx_dependency_scores_platform_id on dependency_scores (platform_id);
 create index if not exists idx_dependency_scores_status on dependency_scores (status);
 create index if not exists idx_dependency_scores_generated_at on dependency_scores (platform_id, generated_at desc, updated_at desc);
+create unique index if not exists idx_dependency_scores_one_published_per_platform
+  on dependency_scores (platform_id)
+  where status = 'published' and archived_at is null;
 
 drop trigger if exists trg_polibrawl_dependency_scores_updated_at on dependency_scores;
 create trigger trg_polibrawl_dependency_scores_updated_at
@@ -801,6 +804,9 @@ create table if not exists evidence_confidence (
 create index if not exists idx_evidence_confidence_platform_id on evidence_confidence (platform_id);
 create index if not exists idx_evidence_confidence_status on evidence_confidence (status);
 create index if not exists idx_evidence_confidence_verified_at on evidence_confidence (platform_id, last_verified_at desc nulls last, updated_at desc);
+create unique index if not exists idx_evidence_confidence_one_published_per_platform
+  on evidence_confidence (platform_id)
+  where status = 'published' and archived_at is null;
 
 drop trigger if exists trg_polibrawl_evidence_confidence_updated_at on evidence_confidence;
 create trigger trg_polibrawl_evidence_confidence_updated_at

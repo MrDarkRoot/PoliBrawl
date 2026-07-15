@@ -10,9 +10,6 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await requireAdminAccess();
-  if (auth.kind === "missing-env") {
-    return NextResponse.json({ error: "Supabase environment is not configured." }, { status: 500 });
-  }
 
   const { id } = await params;
   const current = await getSignalRuleById(id).catch(() => null);

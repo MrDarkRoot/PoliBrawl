@@ -1,6 +1,12 @@
 import "server-only";
 
 import { queryMany, queryOne } from "@/server/polibrawl/db";
+import {
+  validatePublishedBackupOption,
+  validatePublishedEvidenceItem,
+  validatePublishedRedFlag,
+  validatePublishedSurvivalNote,
+} from "@/server/polibrawl/services/editorial/editorial-quality-validator";
 import type { Uuid, RedFlag, EvidenceItem, SurvivalNote, BackupOption, Checklist, ChecklistItem } from "@/types/polibrawl";
 
 export type QualityEvaluation = {
@@ -52,14 +58,13 @@ export async function evaluateDraftRedFlag(redFlagId: Uuid): Promise<QualityEval
     : [];
 
   // Errors (Blockers)
+  errors.push(...validatePublishedRedFlag(redFlag));
+
   if (!redFlag.platform_id) {
     errors.push("Missing Platform");
   }
   if (!redFlag.category) {
     errors.push("Missing Category");
-  }
-  if (!redFlag.reviewed_at) {
-    errors.push("Missing Review Date");
   }
   if (evidence.length === 0) {
     errors.push("Missing Evidence: At least one evidence record is required");
@@ -77,6 +82,18 @@ export async function evaluateDraftRedFlag(redFlagId: Uuid): Promise<QualityEval
   if (redFlag.summary && redFlag.summary.length < 50) {
     errors.push("Too Short Summary: Summary should be at least 50 characters");
   }
+
+  evidence.forEach((item) => {
+    errors.push(...validatePublishedEvidenceItem(redFlag.title, item));
+  });
+
+  notes.forEach((item) => {
+    errors.push(...validatePublishedSurvivalNote(redFlag.title, item));
+  });
+
+  backupOptions.forEach((item) => {
+    errors.push(...validatePublishedBackupOption(redFlag.title, item));
+  });
 
   // Warnings
   if (backupOptions.length === 0) {

@@ -5,7 +5,6 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   EDITORIAL_SITE_URL: z.string().url().optional(),
-  DEV_BOOTSTRAP_OWNER_EMAILS: z.string().optional(),
 });
 
 const publicEnvSchema = envSchema.pick({
@@ -28,16 +27,9 @@ export function getServerEnv() {
 }
 
 export function hasSupabaseEnv() {
-  return Boolean(getSupabasePublicEnv());
+  return Boolean(getServerEnv());
 }
 
-export function getBootstrapOwnerEmails() {
-  const env = getServerEnv();
-  if (!env?.DEV_BOOTSTRAP_OWNER_EMAILS) {
-    return [];
-  }
-
-  return env.DEV_BOOTSTRAP_OWNER_EMAILS.split(",")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
+export function hasSupabasePublicEnv() {
+  return Boolean(getSupabasePublicEnv());
 }

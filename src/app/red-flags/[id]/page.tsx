@@ -5,13 +5,14 @@ import Link from "next/link";
 import {
   getPublicRedFlag,
   getPublicEvidence,
+  getPublicPlatformById,
   getPublicSurvivalNotes,
   getPublicBackupOptions,
   getPublicChecklists,
 } from "@/server/polibrawl/services/public-delivery.service";
-import { PublicNav, PublicFooter, RiskBadge } from "@/components/public/layout";
-import { queryOne } from "@/server/polibrawl/db";
-import type { Platform } from "@/types/polibrawl";
+import { PublicNav, PublicFooter } from "@/components/public/layout";
+import { RiskBadge } from "@/components/public/ui/risk-badge";
+import type { Platform, SurvivalNote } from "@/types/polibrawl";
 import {
   UncomfortableTruth,
   ExposureChecklist,
@@ -25,15 +26,45 @@ import {
   EditorialMethodology,
   ReadingProgressNav
 } from "@/components/public/ui/playbook-components";
-import { sanitizePublicCopy } from "@/components/public/ui/copy-sanitizer";
 import { CopyWarningButton } from "@/components/public/ui/retention-components";
 import { ArrowLeft, Target, AlertTriangle, Shield } from "lucide-react";
 
-async function getPublishedPlatformById(id: string): Promise<Platform | null> {
-  return queryOne<Platform>(
-    `SELECT * FROM platforms WHERE id = $1 AND status = 'published'`,
-    [id]
-  );
+function partitionSurvivalNotes(notes: SurvivalNote[]) {
+  const buckets = {
+    before: [] as SurvivalNote[],
+    during: [] as SurvivalNote[],
+    after: [] as SurvivalNote[],
+  };
+  const uncategorized: SurvivalNote[] = [];
+
+  notes.forEach((note) => {
+    const title = note.note_title.toLowerCase();
+
+    if (title.includes("before") || title.includes("prep")) {
+      buckets.before.push(note);
+      return;
+    }
+
+    if (title.includes("during") || title.includes("review") || title.includes("limit")) {
+      buckets.during.push(note);
+      return;
+    }
+
+    if (title.includes("after") || title.includes("recover")) {
+      buckets.after.push(note);
+      return;
+    }
+
+    uncategorized.push(note);
+  });
+
+  for (const key of ["before", "during", "after"] as const) {
+    if (buckets[key].length === 0 && uncategorized.length > 0) {
+      buckets[key].push(uncategorized.shift() as SurvivalNote);
+    }
+  }
+
+  return buckets;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -51,11 +82,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const redFlag = await getPublicRedFlag(id);
   if (!redFlag) return { title: "Not Found | PoliBrawl" };
-  const platform = await getPublishedPlatformById(redFlag.platform_id);
+  const platform = await getPublicPlatformById(redFlag.platform_id);
   if (!platform) return { title: "Not Found | PoliBrawl" };
 
   const title = `${redFlag.title} | ${platform.name} Survival Playbook`;
-  const description = sanitizePublicCopy(redFlag.summary, 'summary') || `Policy red flag regarding ${redFlag.title}.`;
+  const description = redFlag.summary || `Policy red flag regarding ${redFlag.title}.`;
   const url = `https://polibrawl.com/red-flags/${redFlag.id}`;
 
   return {
@@ -72,7 +103,7 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
   const redFlag = await getPublicRedFlag(id);
   if (!redFlag) notFound();
 
-  const platform = await getPublishedPlatformById(redFlag.platform_id);
+  const platform = await getPublicPlatformById(redFlag.platform_id);
   if (!platform) notFound();
 
   const [evidence, survivalNotes, backupOptions, checklists] = await Promise.all([
@@ -96,7 +127,7 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
       "@context": "https://schema.org",
       "@type": "Article",
       headline: redFlag.title,
-      description: sanitizePublicCopy(redFlag.summary, 'summary'),
+      description: redFlag.summary,
       author: { "@type": "Organization", name: "PoliBrawl" },
     },
   ];
@@ -140,17 +171,18 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
   }
 
   const sanitizedEvidence = evidence.map(ev => ({
-    title: sanitizePublicCopy(ev.source_title, 'summary') || "Official Policy Document",
+    title: ev.source_title || "Official Policy Document",
     url: ev.source_url || undefined,
-    excerpt: sanitizePublicCopy(ev.excerpt, 'summary'),
+    excerpt: ev.excerpt,
     date: ev.reviewed_at ? new Date(ev.reviewed_at).toLocaleDateString() : "Recent"
   }));
 
   const oneTruth = `Your account operations can look completely normal until this policy triggers a ${redFlag.level} severity review event.`;
 
-  const beforeActions = survivalNotes.filter(sn => sn.note_title.toLowerCase().includes('before') || sn.note_title.toLowerCase().includes('prep'));
-  const duringActions = survivalNotes.filter(sn => sn.note_title.toLowerCase().includes('during') || sn.note_title.toLowerCase().includes('review') || sn.note_title.toLowerCase().includes('limit'));
-  const afterActions = survivalNotes.filter(sn => sn.note_title.toLowerCase().includes('after') || sn.note_title.toLowerCase().includes('recover'));
+  const groupedSurvivalNotes = partitionSurvivalNotes(survivalNotes);
+  const beforeActions = groupedSurvivalNotes.before;
+  const duringActions = groupedSurvivalNotes.during;
+  const afterActions = groupedSurvivalNotes.after;
 
   const navLinks = [
     { id: "overview", label: "The Risk" },
@@ -200,7 +232,7 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
 
               {redFlag.summary && (
                 <div className="text-2xl text-slate-700 leading-relaxed font-medium mt-12 border-l-4 border-slate-300 pl-6">
-                  <p>{sanitizePublicCopy(redFlag.summary, 'hero')}</p>
+                  <p>{redFlag.summary}</p>
                 </div>
               )}
               
@@ -208,7 +240,7 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
                 <CopyWarningButton 
                   platformName={platform.name}
                   riskTitle={redFlag.title}
-                  whyItMatters={redFlag.why_it_matters ? sanitizePublicCopy(redFlag.why_it_matters, 'summary') : sanitizePublicCopy(redFlag.summary, 'summary')}
+                  whyItMatters={redFlag.why_it_matters || redFlag.summary}
                   url={`https://polibrawl.com/red-flags/${redFlag.id}`}
                 />
               </div>
@@ -223,7 +255,7 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
               {redFlag.why_it_matters && (
                 <div className="text-xl text-slate-700 leading-relaxed mb-12 bg-red-50 border-2 border-red-200 p-8 rounded-2xl shadow-sm">
                   <strong className="block text-sm font-black uppercase tracking-widest text-red-800 mb-3">The Trap</strong>
-                  {sanitizePublicCopy(redFlag.why_it_matters, 'summary')}
+                  {redFlag.why_it_matters}
                 </div>
               )}
 
@@ -273,23 +305,23 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
               <SurvivalPlaybook>
                 <PlaybookPhaseCard phase="Before it happens" title="Proactive Defense">
                   {beforeActions.length > 0 ? (
-                    beforeActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
+                    beforeActions.map((action) => <p key={action.id}>{action.note_body}</p>)
                   ) : (
-                    <p>Maintain up-to-date incorporation documents, tax ID evidence, and supplier invoices on hand. Implement secondary processors for high-risk product cohorts to diffuse risk.</p>
+                    <p>No published preparation guidance has been assigned to this phase yet.</p>
                   )}
                 </PlaybookPhaseCard>
                 <PlaybookPhaseCard phase="If it hits today" title="Damage Control">
                   {duringActions.length > 0 ? (
-                    duringActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
+                    duringActions.map((action) => <p key={action.id}>{action.note_body}</p>)
                   ) : (
-                    <p>Immediately pause customer traffic to the affected rail. Do not submit forged or altered documents under panic. Reply precisely and politely to any compliance inquiries within 24 hours.</p>
+                    <p>No published incident-response guidance has been assigned to this phase yet.</p>
                   )}
                 </PlaybookPhaseCard>
                 <PlaybookPhaseCard phase="After recovery" title="Post-Mortem">
                   {afterActions.length > 0 ? (
-                    afterActions.map(a => <p key={a.id}>{sanitizePublicCopy(a.note_body, 'action')}</p>)
+                    afterActions.map((action) => <p key={action.id}>{action.note_body}</p>)
                   ) : (
-                    <p>Gradually increase transaction volume back to normal levels. Review the trigger event with your operations team and adjust business logic to avoid repeating the flagged behavior.</p>
+                    <p>No published recovery guidance has been assigned to this phase yet.</p>
                   )}
                 </PlaybookPhaseCard>
               </SurvivalPlaybook>
@@ -298,17 +330,14 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
             <div id="actions" className="scroll-mt-32">
               <WhatToDoToday>
                 {checklists.length === 0 ? (
-                  <TodayActionCard 
-                    title="Audit your account documentation"
-                    whyItMatters="Ensures that if a review is triggered, you have exactly the documents the platform expects ready to upload instantly."
-                    timeEstimate="30 mins"
-                    priority="High"
-                  />
+                  <p className="text-xl font-medium text-slate-500 bg-slate-50 p-10 rounded-2xl border-2 border-slate-200">
+                    No published checklist is available for this red flag yet.
+                  </p>
                 ) : (
                   checklists.flatMap(c => c.items.map(item => (
                     <TodayActionCard 
                       key={item.label}
-                      title={sanitizePublicCopy(item.label, 'action')}
+                      title={item.label}
                       whyItMatters={item.required ? "Mandatory compliance step based on this specific policy trigger." : "Recommended operational hygiene to reduce risk."}
                       priority={item.required ? "High" : "Medium"}
                       timeEstimate="15 mins"
@@ -327,9 +356,9 @@ export default async function PublicRedFlagPage({ params }: { params: Promise<{ 
                     <BackupRailCard 
                       key={backup.id}
                       title={backup.label}
-                      whenToUse={sanitizePublicCopy(backup.summary, 'action') || "Use as an active fallback when this platform goes down."}
+                      whenToUse={backup.summary}
                       riskReduced="Dependency on a single payout provider."
-                      tradeoffs={sanitizePublicCopy(backup.tradeoffs, 'action') || "Migration effort, API refactoring, and fee changes."}
+                      tradeoffs={backup.tradeoffs}
                     />
                   ))
                 )}

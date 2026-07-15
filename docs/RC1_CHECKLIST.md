@@ -139,10 +139,11 @@ Key limitations for RC1:
 ## Production Deployment Checklist
 
 - [ ] Set `DATABASE_URL` / `POSTGRES_URL` environment variable
-- [ ] Set `NEXTAUTH_URL` environment variable
-- [ ] Set `NEXTAUTH_SECRET` environment variable  
-- [ ] Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` if using Supabase client
-- [ ] Run `node scripts/apply-schema.mjs` against production DB
+- [ ] Set `NEXT_PUBLIC_SUPABASE_URL` environment variable
+- [ ] Set `NEXT_PUBLIC_SUPABASE_ANON_KEY` environment variable
+- [ ] Set `SUPABASE_SERVICE_ROLE_KEY` environment variable
+- [ ] Run `npm run db:apply-schema` against production DB
+- [ ] Run `npm run db:health` against production DB
 - [ ] Run smoke test against production DB
 - [ ] Verify `/admin` requires authentication on production
 - [ ] Verify `/platforms` returns published platforms

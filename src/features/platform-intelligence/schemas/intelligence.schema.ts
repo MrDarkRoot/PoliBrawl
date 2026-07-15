@@ -4,6 +4,7 @@ import {
   redFlagLevels,
 } from "@/types/polibrawl";
 import { parseTimelineEventsInput, splitTextareaLines } from "@/features/platform-intelligence/intelligence-formats";
+import { httpUrlSchema } from "@/features/shared/schemas/http-url";
 
 const editableStatusSchema = z.enum(["draft", "published"]);
 
@@ -35,7 +36,7 @@ export const resolutionRouteFormSchema = z.object({
   organization_type: z.string().trim().min(1).max(200),
   country: optionalTextSchema,
   jurisdiction: optionalTextSchema,
-  official_url: z.string().trim().url(),
+  official_url: httpUrlSchema,
   eligible_users: textListSchema,
   eligible_disputes: textListSchema,
   requirements: textListSchema,
