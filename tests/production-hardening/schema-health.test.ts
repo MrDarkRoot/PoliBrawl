@@ -16,5 +16,7 @@ test("schema health reports missing required tables", () => {
     "user_platform_watchlist",
     "policy_alerts",
     "editorial_drafts",
+    "payment_decision_sessions",
+    "payment_decision_results",
   ]);
 });

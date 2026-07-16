@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 import { getPublicPlatforms } from "@/server/polibrawl/services/public-delivery.service";
 import { StackProfiler } from "@/components/public/ui/retention-components";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "PoliBrawl — Survival Guides for Platform Risk",
   description:
@@ -59,19 +61,19 @@ export default async function PublicLandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <Link
-                href="/platforms"
+                href="/payment-check"
                 className={cn(buttonVariants({ size: "lg" }), "w-full sm:w-auto font-black text-lg px-10 h-16 rounded-xl")}
               >
-                Browse platform guides
+                <CreditCard className="mr-3 h-5 w-5" aria-hidden="true" />
+                Check a payment platform
                 <ArrowRight className="ml-3 h-5 w-5" aria-hidden="true" />
               </Link>
-              <a
-                href="#stack-profiler"
+              <Link
+                href="/platforms"
                 className={cn(buttonVariants({ variant: "outline", size: "lg" }), "w-full sm:w-auto font-bold text-lg px-10 h-16 rounded-xl border-2 border-slate-200 hover:border-slate-900 hover:bg-slate-50")}
               >
-                <Activity className="mr-3 h-5 w-5 text-slate-500" />
-                Build my stack
-              </a>
+                Browse platform guides
+              </Link>
             </div>
           </div>
         </section>

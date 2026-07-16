@@ -47,6 +47,13 @@ The health check verifies these required tables exist:
 - `dependency_scores`
 - `risk_timelines`
 - `evidence_confidence`
+- `policy_changes`
+- `user_platform_watchlist`
+- `policy_alerts`
+- `editorial_drafts`
+- `editorial_draft_revisions`
+- `payment_decision_sessions`
+- `payment_decision_results`
 
 Application startup also verifies this requirement in `src/instrumentation.ts`, and shared DB reads verify it through `src/server/polibrawl/db.ts`.
 
@@ -87,6 +94,21 @@ npm run build
 - Edited historical migration file: checksum validation fails
 
 Do not ignore these failures. The application is intentionally fail-closed.
+
+## Sprint 11 Payment Decision MVP
+
+Sprint 11 adds the public payment dependency decision workflow. Its additive migration is:
+
+```bash
+scripts/sql/add-payment-dependency-decision-mvp-v1.sql
+```
+
+The migration creates only:
+
+- `payment_decision_sessions`
+- `payment_decision_results`
+
+These tables store normalized, non-sensitive questionnaire fields, opaque report tokens, deterministic recommendation metadata, confidence reasons, limitations, and a public report snapshot. They must not store email addresses, exact income, bank details, identity documents, AI-provider responses, source snapshot internals, research packet internals, or admin metadata.
 
 ## Rollback Considerations
 

@@ -25,9 +25,10 @@ export const metadata = {
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const query = (searchParams.q ?? "").trim();
+  const params = await searchParams;
+  const query = (params.q ?? "").trim();
   const results = query ? await searchPublic(query) : [];
   const platforms = results.filter((r) => r.type === "platform");
   const redFlags = results.filter((r) => r.type === "red_flag");

@@ -28,6 +28,9 @@ export const requiredPolibrawlTables = [
   "editorial_drafts",
   // Sprint 10.5 — Editorial Intelligence Calibration
   "editorial_draft_revisions",
+  // Sprint 11 — Payment Dependency Decision MVP
+  "payment_decision_sessions",
+  "payment_decision_results",
 ];
 
 async function loadEnvFile(filename) {

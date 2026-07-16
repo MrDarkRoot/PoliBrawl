@@ -1,4 +1,5 @@
 create extension if not exists pgcrypto;
+create extension if not exists "uuid-ossp";
 
 create or replace function set_polibrawl_updated_at()
 returns trigger
@@ -214,7 +215,7 @@ create table if not exists keyword_matches (
   confidence integer default 1,
   noise_score integer default 0,
   status text not null default 'pending' check (status in ('pending','grouped','ignored','promoted')),
-  candidate_id uuid references red_flag_candidates(id) on delete set null,
+  candidate_id uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -274,6 +275,20 @@ alter table if exists red_flag_candidates add column if not exists reviewed_by u
 alter table if exists red_flag_candidates add column if not exists merged_into_candidate_id uuid references red_flag_candidates(id) on delete set null;
 alter table if exists red_flag_candidates add column if not exists approved_red_flag_id uuid;
 alter table if exists red_flag_candidates add column if not exists reject_reason text;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'keyword_matches_candidate_id_fkey'
+      and conrelid = 'keyword_matches'::regclass
+  ) then
+    alter table keyword_matches
+      add constraint keyword_matches_candidate_id_fkey
+      foreign key (candidate_id) references red_flag_candidates(id) on delete set null;
+  end if;
+end $$;
 
 drop trigger if exists trg_polibrawl_red_flag_candidates_updated_at on red_flag_candidates;
 create trigger trg_polibrawl_red_flag_candidates_updated_at
@@ -901,6 +916,74 @@ create trigger trg_polibrawl_policy_alerts_updated_at
 before update on policy_alerts
 for each row execute function set_polibrawl_updated_at();
 
+-- Sprint 8 / Research Packet Builder
+
+create table if not exists research_packets (
+  id uuid primary key default gen_random_uuid(),
+  candidate_id uuid not null references red_flag_candidates(id) on delete restrict,
+  platform_id uuid not null references platforms(id) on delete restrict,
+  source_snapshot_id uuid references source_snapshots(id) on delete set null,
+  category text not null,
+  title text not null,
+  status text not null default 'draft' check (status in ('draft', 'ready', 'archived')),
+  confidence_score integer not null default 0,
+  noise_score integer not null default 0,
+  summary text,
+  suggested_level text,
+  suggested_risk text,
+  scanner_observations text,
+  possible_false_positives text,
+  keywords_found text[] not null default '{}'::text[],
+  source_url text,
+  generated_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists research_packets_candidate_id_unique
+  on research_packets (candidate_id);
+
+create index if not exists research_packets_platform_id_idx
+  on research_packets (platform_id);
+
+create index if not exists research_packets_status_idx
+  on research_packets (status);
+
+create index if not exists research_packets_category_idx
+  on research_packets (category);
+
+create index if not exists research_packets_confidence_score_idx
+  on research_packets (confidence_score desc);
+
+drop trigger if exists trg_polibrawl_research_packets_updated_at on research_packets;
+create trigger trg_polibrawl_research_packets_updated_at
+before update on research_packets
+for each row execute function set_polibrawl_updated_at();
+
+create table if not exists research_packet_evidence (
+  id uuid primary key default gen_random_uuid(),
+  research_packet_id uuid not null references research_packets(id) on delete restrict,
+  keyword_match_id uuid references keyword_matches(id) on delete set null,
+  excerpt text not null,
+  context_before text,
+  context_after text,
+  source_url text,
+  section_hint text,
+  confidence_score integer not null default 0,
+  noise_score integer not null default 0,
+  display_order integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists research_packet_evidence_packet_id_idx
+  on research_packet_evidence (research_packet_id);
+
+create index if not exists research_packet_evidence_display_order_idx
+  on research_packet_evidence (research_packet_id, display_order);
+
+create index if not exists research_packet_evidence_keyword_match_id_idx
+  on research_packet_evidence (keyword_match_id);
+
 -- AI Editorial Worker v1
 
 create table if not exists editorial_drafts (
@@ -952,3 +1035,96 @@ drop trigger if exists trg_polibrawl_editorial_drafts_updated_at on editorial_dr
 create trigger trg_polibrawl_editorial_drafts_updated_at
 before update on editorial_drafts
 for each row execute function set_polibrawl_updated_at();
+
+-- Sprint 11 — Payment Dependency Decision MVP
+
+create table if not exists payment_decision_sessions (
+  id uuid primary key default gen_random_uuid(),
+  report_token text not null unique,
+  country text not null check (
+    country in ('vietnam', 'country_verification_required')
+  ),
+  work_type text not null check (
+    work_type in ('bug_bounty', 'freelancer', 'creator', 'consultant', 'indie_hacker', 'other')
+  ),
+  platform_id uuid not null references platforms(id) on delete restrict,
+  comparison_platform_id uuid references platforms(id) on delete restrict,
+  amount_range text not null check (
+    amount_range in ('under_500', '500_to_5000', 'over_5000')
+  ),
+  payment_frequency text not null check (
+    payment_frequency in ('one_time', 'irregular', 'regular')
+  ),
+  usage_role text not null check (
+    usage_role in ('primary', 'backup', 'evaluating')
+  ),
+  has_backup_route boolean not null,
+  concerns jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz,
+  constraint payment_decision_report_token_entropy_check
+    check (length(report_token) >= 43),
+  constraint payment_decision_sessions_concerns_array_check
+    check (jsonb_typeof(concerns) = 'array')
+);
+
+create index if not exists idx_payment_decision_sessions_platform_id
+  on payment_decision_sessions (platform_id, created_at desc);
+
+create index if not exists idx_payment_decision_sessions_created_at
+  on payment_decision_sessions (created_at desc);
+
+create index if not exists idx_payment_decision_sessions_expires_at
+  on payment_decision_sessions (expires_at)
+  where expires_at is not null;
+
+create table if not exists payment_decision_results (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references payment_decision_sessions(id) on delete cascade,
+  recommendation_code text not null check (
+    recommendation_code in (
+      'SUITABLE_AS_SECONDARY_METHOD',
+      'USE_WITH_VERIFIED_BACKUP',
+      'AVOID_SINGLE_PLATFORM_DEPENDENCY',
+      'COMPLETE_VERIFICATION_BEFORE_LARGE_PAYMENT',
+      'MINIMIZE_STORED_BALANCE',
+      'VERIFY_COUNTRY_ELIGIBILITY',
+      'VERIFY_PAYER_COMPATIBILITY',
+      'FURTHER_REVIEW_REQUIRED'
+    )
+  ),
+  matched_rule_keys jsonb not null default '[]'::jsonb,
+  matched_risk_ids jsonb not null default '[]'::jsonb,
+  matched_evidence_ids jsonb not null default '[]'::jsonb,
+  action_codes jsonb not null default '[]'::jsonb,
+  confidence_level text not null check (
+    confidence_level in ('low', 'moderate', 'high')
+  ),
+  confidence_reasons jsonb not null default '[]'::jsonb,
+  limitations jsonb not null default '[]'::jsonb,
+  result_snapshot jsonb not null,
+  created_at timestamptz not null default now(),
+  constraint payment_decision_results_rule_keys_array_check
+    check (jsonb_typeof(matched_rule_keys) = 'array'),
+  constraint payment_decision_results_risk_ids_array_check
+    check (jsonb_typeof(matched_risk_ids) = 'array'),
+  constraint payment_decision_results_evidence_ids_array_check
+    check (jsonb_typeof(matched_evidence_ids) = 'array'),
+  constraint payment_decision_results_action_codes_array_check
+    check (jsonb_typeof(action_codes) = 'array'),
+  constraint payment_decision_results_confidence_reasons_array_check
+    check (jsonb_typeof(confidence_reasons) = 'array'),
+  constraint payment_decision_results_limitations_array_check
+    check (jsonb_typeof(limitations) = 'array'),
+  constraint payment_decision_results_snapshot_object_check
+    check (jsonb_typeof(result_snapshot) = 'object')
+);
+
+create index if not exists idx_payment_decision_results_session_id
+  on payment_decision_results (session_id, created_at desc);
+
+create index if not exists idx_payment_decision_results_recommendation_code
+  on payment_decision_results (recommendation_code, created_at desc);
+
+create index if not exists idx_payment_decision_results_confidence_level
+  on payment_decision_results (confidence_level, created_at desc);

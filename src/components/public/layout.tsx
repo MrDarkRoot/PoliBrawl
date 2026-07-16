@@ -2,6 +2,7 @@ import Link from "next/link";
 
 
 const navLinks = [
+  { href: "/payment-check", label: "Payment Check" },
   { href: "/platforms", label: "Directory" },
   { href: "/changes", label: "Radar" },
   { href: "/search", label: "Search" },
@@ -51,6 +52,7 @@ export function PublicFooter() {
             &copy; {new Date().getFullYear()} PoliBrawl. Editorial content only &mdash; not legal advice.
           </div>
           <nav aria-label="Footer navigation" className="flex items-center gap-6 text-sm text-slate-500">
+            <Link href="/payment-check" className="hover:text-slate-900 transition-colors">Payment Check</Link>
             <Link href="/platforms" className="hover:text-slate-900 transition-colors">Directory</Link>
             <Link href="/changes" className="hover:text-slate-900 transition-colors">Radar</Link>
             <Link href="/search" className="hover:text-slate-900 transition-colors">Search</Link>

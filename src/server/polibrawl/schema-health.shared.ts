@@ -11,6 +11,8 @@ export const requiredPolibrawlTables = [
   "user_platform_watchlist",
   "policy_alerts",
   "editorial_drafts",
+  "payment_decision_sessions",
+  "payment_decision_results",
 ] as const;
 
 export function findMissingPolibrawlTables(existingTables: readonly string[]) {
