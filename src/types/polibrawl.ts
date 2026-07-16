@@ -87,6 +87,32 @@ export const backupOptionStatuses = ["draft", "published", "archived"] as const;
 export const checklistStatuses = ["draft", "published", "archived"] as const;
 export const checklistItemStatuses = ["draft", "published", "archived"] as const;
 export const intelligenceStatuses = ["draft", "published", "archived"] as const;
+export const policyChangeStatuses = [
+  "draft",
+  "reviewed",
+  "published",
+  "archived",
+] as const;
+export const policyChangeImpactLevels = [
+  "low",
+  "medium",
+  "high",
+  "critical",
+  "unknown",
+] as const;
+export const policyAlertStatuses = ["unread", "read"] as const;
+export const editorialDraftTypes = [
+  "platform_survival_guide",
+  "red_flag_analysis",
+  "policy_change_summary",
+] as const;
+export const editorialDraftStatuses = [
+  "draft",
+  "review_requested",
+  "approved",
+  "published",
+  "rejected",
+] as const;
 
 export const researchPacketStatuses = ["draft", "ready", "archived"] as const;
 export type ResearchPacketStatus = (typeof researchPacketStatuses)[number];
@@ -145,6 +171,11 @@ export type BackupOptionStatus = (typeof backupOptionStatuses)[number];
 export type ChecklistStatus = (typeof checklistStatuses)[number];
 export type ChecklistItemStatus = (typeof checklistItemStatuses)[number];
 export type IntelligenceStatus = (typeof intelligenceStatuses)[number];
+export type PolicyChangeStatus = (typeof policyChangeStatuses)[number];
+export type PolicyChangeImpactLevel = (typeof policyChangeImpactLevels)[number];
+export type PolicyAlertStatus = (typeof policyAlertStatuses)[number];
+export type EditorialDraftType = (typeof editorialDraftTypes)[number];
+export type EditorialDraftStatus = (typeof editorialDraftStatuses)[number];
 export type CommunitySubmissionStatus = (typeof communitySubmissionStatuses)[number];
 export type PlatformWatcherStatus = (typeof platformWatcherStatuses)[number];
 export type CorrectionStatus = (typeof correctionStatuses)[number];
@@ -341,6 +372,80 @@ export type EvidenceConfidence = BaseRecord & {
   last_verified_at: IsoDatetime | null;
   status: IntelligenceStatus;
   published_at: IsoDatetime | null;
+};
+
+export type PolicyChange = BaseRecord & {
+  platform_id: Uuid;
+  source_id: Uuid | null;
+  old_snapshot_id: Uuid | null;
+  new_snapshot_id: Uuid | null;
+  change_type: string;
+  summary: string | null;
+  impact_level: PolicyChangeImpactLevel;
+  published_status: PolicyChangeStatus;
+  what_changed: string | null;
+  who_is_affected: string[];
+  why_it_matters: string | null;
+  what_to_do: string[];
+  reviewed_at: IsoDatetime | null;
+  published_at: IsoDatetime | null;
+  policy_source_id: Uuid | null;
+  old_version_id: Uuid | null;
+  new_version_id: Uuid | null;
+  old_hash: string | null;
+  new_hash: string | null;
+  detected_at: IsoDatetime;
+  status: string;
+  importance: string | null;
+  reviewed_by: Uuid | null;
+};
+
+export type UserPlatformWatchlist = {
+  id: Uuid;
+  user_id: Uuid;
+  platform_id: Uuid;
+  created_at: IsoDatetime;
+  updated_at: IsoDatetime;
+};
+
+export type PolicyAlert = {
+  id: Uuid;
+  user_id: Uuid;
+  policy_change_id: Uuid;
+  status: PolicyAlertStatus;
+  created_at: IsoDatetime;
+  updated_at: IsoDatetime;
+  read_at: IsoDatetime | null;
+};
+
+export type EditorialDraftBackupOption = {
+  label: string;
+  tradeoff: string;
+};
+
+export type EditorialDraft = BaseRecord & {
+  platform_id: Uuid;
+  red_flag_id: Uuid | null;
+  research_packet_id: Uuid;
+  draft_type: EditorialDraftType;
+  title: string;
+  summary: string;
+  who_is_affected: string[];
+  why_it_matters: string;
+  survival_actions: string[];
+  checklist_items: string[];
+  backup_options: EditorialDraftBackupOption[];
+  evidence_summary: string;
+  evidence_reference_ids: Uuid[];
+  ai_confidence: number;
+  status: EditorialDraftStatus;
+  reviewed_at: IsoDatetime | null;
+  published_at: IsoDatetime | null;
+  // Sprint 10.5 — Editorial Intelligence Calibration (additive JSONB fields)
+  template_key: string | null;
+  generation_context: Record<string, unknown> | null;
+  critic_result: Record<string, unknown> | null;
+  quality_evaluation: Record<string, unknown> | null;
 };
 
 export type CandidateReviewHistory = {
@@ -618,6 +723,34 @@ export type CreateEvidenceConfidenceDto = Omit<EvidenceConfidence, "id" | "creat
   published_at?: IsoDatetime | null;
 };
 export type UpdateEvidenceConfidenceDto = Partial<CreateEvidenceConfidenceDto>;
+export type CreatePolicyChangeDto = Omit<PolicyChange, "id" | "created_at" | "updated_at" | "archived_at" | "published_at"> & {
+  published_at?: IsoDatetime | null;
+};
+export type UpdatePolicyChangeDto = Partial<CreatePolicyChangeDto>;
+export type CreateUserPlatformWatchlistDto = Omit<
+  UserPlatformWatchlist,
+  "id" | "created_at" | "updated_at"
+>;
+export type UpdateUserPlatformWatchlistDto = Partial<CreateUserPlatformWatchlistDto>;
+export type CreatePolicyAlertDto = Omit<
+  PolicyAlert,
+  "id" | "created_at" | "updated_at"
+>;
+export type UpdatePolicyAlertDto = Partial<CreatePolicyAlertDto>;
+export type CreateEditorialDraftDto = Omit<
+  EditorialDraft,
+  // Base record fields
+  | "id" | "created_at" | "updated_at" | "archived_at"
+  // Sprint 10.5 JSONB fields — optional on creation, populated after
+  | "template_key" | "generation_context" | "critic_result" | "quality_evaluation"
+> & {
+  // Sprint 10.5 calibration fields are optional at creation time
+  template_key?: string | null;
+  generation_context?: Record<string, unknown> | null;
+  critic_result?: Record<string, unknown> | null;
+  quality_evaluation?: Record<string, unknown> | null;
+};
+export type UpdateEditorialDraftDto = Partial<CreateEditorialDraftDto>;
 
 export type CreateReviewRequestDto = Omit<ReviewRequest, "id" | "created_at" | "updated_at" | "archived_at" | "reviewed_at"> & {
   reviewed_at?: IsoDatetime | null;
@@ -695,6 +828,21 @@ export type RiskTimelineListFilters = Partial<
 >;
 export type EvidenceConfidenceListFilters = Partial<
   Pick<EvidenceConfidence, "id" | "platform_id" | "status">
+>;
+export type PolicyChangeListFilters = Partial<
+  Pick<PolicyChange, "id" | "platform_id" | "source_id" | "published_status" | "impact_level">
+>;
+export type UserPlatformWatchlistListFilters = Partial<
+  Pick<UserPlatformWatchlist, "id" | "user_id" | "platform_id">
+>;
+export type PolicyAlertListFilters = Partial<
+  Pick<PolicyAlert, "id" | "user_id" | "policy_change_id" | "status">
+>;
+export type EditorialDraftListFilters = Partial<
+  Pick<
+    EditorialDraft,
+    "id" | "platform_id" | "red_flag_id" | "research_packet_id" | "draft_type" | "status"
+  >
 >;
 export type ReviewRequestListFilters = Partial<
   Pick<ReviewRequest, "id" | "platform_id" | "status">

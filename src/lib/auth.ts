@@ -3,7 +3,7 @@ import "server-only";
 import { forbidden, redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
-import { evaluateAdminAccess } from "@/lib/auth-policy";
+import { evaluateAdminAccess, evaluateUserAccess } from "@/lib/auth-policy";
 import { hasSupabaseEnv } from "@/lib/env";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -52,6 +52,17 @@ export async function getAuthContext(): Promise<AuthContext> {
   }
 
   const profile = await getProfile(user);
+  const accessDecision = evaluateUserAccess({
+    hasServerEnv: true,
+    hasUser: Boolean(user),
+    hasProfile: Boolean(profile),
+  });
+
+  if (!accessDecision.allowed) {
+    redirect(
+      accessDecision.reason === "unauthenticated" ? "/login" : "/login?error=role",
+    );
+  }
 
   if (!profile) {
     redirect("/login?error=role");

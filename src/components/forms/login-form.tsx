@@ -12,7 +12,13 @@ import { Label } from "@/components/ui/label";
 import { createClientSupabaseClient } from "@/lib/supabase/client";
 import { type LoginInput, loginSchema } from "@/lib/validation/auth";
 
-export function LoginForm({ initialError }: { initialError?: string | null }) {
+export function LoginForm({
+  initialError,
+  redirectTo = "/dashboard",
+}: {
+  initialError?: string | null;
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(initialError ?? null);
 
@@ -37,7 +43,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
       }
 
       startTransition(() => {
-        router.replace("/admin");
+        router.replace(redirectTo);
         router.refresh();
       });
     } catch (submissionError) {
@@ -52,7 +58,7 @@ export function LoginForm({ initialError }: { initialError?: string | null }) {
   return (
     <Card className="border-border/70 shadow-lg shadow-zinc-950/5">
       <CardHeader>
-        <CardTitle className="text-2xl">Editor sign in</CardTitle>
+        <CardTitle className="text-2xl">Sign in</CardTitle>
       </CardHeader>
       <CardContent>
         <form className="space-y-5" onSubmit={onSubmit}>

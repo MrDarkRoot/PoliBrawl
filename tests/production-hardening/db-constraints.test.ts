@@ -144,3 +144,25 @@ test("published evidence confidence uniqueness is enforced", async () => {
     );
   });
 });
+
+test("user platform watchlist prevents duplicate follows", async () => {
+  await withRollback(async (client) => {
+    const platformId = await insertTempPlatform(client);
+    const userId = "00000000-0000-0000-0000-000000000111";
+
+    await client.query(
+      `insert into user_platform_watchlist (user_id, platform_id)
+       values ($1, $2)`,
+      [userId, platformId],
+    );
+
+    await assert.rejects(
+      client.query(
+        `insert into user_platform_watchlist (user_id, platform_id)
+         values ($1, $2)`,
+        [userId, platformId],
+      ),
+      /duplicate key value violates unique constraint/i,
+    );
+  });
+});

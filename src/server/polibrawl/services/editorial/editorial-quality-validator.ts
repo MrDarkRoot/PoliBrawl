@@ -5,6 +5,7 @@ import type {
   EvidenceConfidence,
   EvidenceItem,
   Platform,
+  PolicyChange,
   PlatformSurvivalPage,
   RedFlag,
   ResolutionRoute,
@@ -258,6 +259,39 @@ export function validatePublishedRiskTimeline(timeline: RiskTimeline) {
   });
 
   return issues;
+}
+
+export function validatePublishedPolicyChange(change: PolicyChange) {
+  return [
+    ...validateEditorialField({
+      label: "Policy change summary",
+      value: change.summary,
+      required: true,
+      minLength: 20,
+    }),
+    ...validateEditorialField({
+      label: "Policy change what changed",
+      value: change.what_changed,
+      required: true,
+      minLength: 40,
+    }),
+    ...validateEditorialField({
+      label: "Policy change why it matters",
+      value: change.why_it_matters,
+      required: true,
+      minLength: 30,
+    }),
+    ...(change.who_is_affected.length > 0
+      ? []
+      : ["Published policy change must identify who is affected."]),
+    ...(change.what_to_do.length > 0
+      ? []
+      : ["Published policy change must include an action checklist."]),
+    ...(change.source_id ? [] : ["Published policy change is missing its official source reference."]),
+    ...(change.old_snapshot_id ? [] : ["Published policy change is missing its previous snapshot reference."]),
+    ...(change.new_snapshot_id ? [] : ["Published policy change is missing its current snapshot reference."]),
+    ...(change.reviewed_at ? [] : ["Published policy change is missing reviewed_at."]),
+  ];
 }
 
 export function validatePublishedPlatformPageCopy(input: {

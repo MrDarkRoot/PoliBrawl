@@ -3,8 +3,10 @@ import Link from "next/link";
 
 const navLinks = [
   { href: "/platforms", label: "Directory" },
+  { href: "/changes", label: "Radar" },
   { href: "/search", label: "Search" },
   { href: "/about", label: "About" },
+  { href: "/dashboard", label: "Dashboard" },
 ] as const;
 
 interface PublicNavProps {
@@ -50,8 +52,10 @@ export function PublicFooter() {
           </div>
           <nav aria-label="Footer navigation" className="flex items-center gap-6 text-sm text-slate-500">
             <Link href="/platforms" className="hover:text-slate-900 transition-colors">Directory</Link>
+            <Link href="/changes" className="hover:text-slate-900 transition-colors">Radar</Link>
             <Link href="/search" className="hover:text-slate-900 transition-colors">Search</Link>
             <Link href="/about" className="hover:text-slate-900 transition-colors">About</Link>
+            <Link href="/dashboard" className="hover:text-slate-900 transition-colors">Dashboard</Link>
           </nav>
         </div>
       </div>

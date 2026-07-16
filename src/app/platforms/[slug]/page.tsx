@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { WatchlistToggleForm, PolicyChangeCard } from "@/components/public/ui/policy-change-components";
 import { PublicFooter, PublicNav } from "@/components/public/layout";
 import {
   DependencySnapshotCard,
@@ -31,6 +32,9 @@ import {
   TodayActionCard,
   WhatToDoToday,
 } from "@/components/public/ui/playbook-components";
+import { getOptionalAuthContext } from "@/lib/auth";
+import { findUserPlatformWatch } from "@/server/polibrawl/repositories/user-platform-watchlist.repository";
+import { getPublishedPolicyChangesByPlatform } from "@/server/polibrawl/services/policy-intelligence.service";
 import {
   getPublicBackupOptions,
   getPublicChecklists,
@@ -182,6 +186,7 @@ export default async function PlatformSurvivalGuidePage({
     riskTimelines,
     evidenceConfidence,
     allPlatforms,
+    auth,
   ] = await Promise.all([
     getPublicSurvivalPage(platform.id),
     getPublicDependencyScore(platform.id),
@@ -189,6 +194,14 @@ export default async function PlatformSurvivalGuidePage({
     getPublicRiskTimelines(platform.id),
     getPublicEvidenceConfidence(platform.id),
     getPublicPlatforms(),
+    getOptionalAuthContext(),
+  ]);
+
+  const [recentPolicyChanges, watchRecord] = await Promise.all([
+    getPublishedPolicyChangesByPlatform(platform.id, 2),
+    auth.kind === "configured"
+      ? findUserPlatformWatch(auth.user.id, platform.id)
+      : Promise.resolve(null),
   ]);
 
   const redFlags = survivalPage ? await getPublicRedFlags(survivalPage.id) : [];
@@ -362,6 +375,7 @@ export default async function PlatformSurvivalGuidePage({
 
   const navLinks = [
     { id: "overview", label: "Overview" },
+    ...(recentPolicyChanges.length > 0 ? [{ id: "radar", label: "Change Radar" }] : []),
     { id: "risk-summary", label: "Risk Summary" },
     { id: "caught", label: "Why Users Get Caught" },
     { id: "dependency", label: "Dependency Snapshot" },
@@ -411,12 +425,12 @@ export default async function PlatformSurvivalGuidePage({
                   >
                     Request Review
                   </Link>
-                  <Link
-                    className="inline-flex items-center justify-center rounded-lg border-2 border-blue-200 bg-white px-5 py-2.5 font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50"
-                    href={`/contribute?platform=${platform.id}#watch`}
-                  >
-                    Watch Platform
-                  </Link>
+                  <WatchlistToggleForm
+                    authState={auth.kind}
+                    isWatching={Boolean(watchRecord)}
+                    platformId={platform.id}
+                    redirectTo={`/platforms/${platform.slug}`}
+                  />
                 </div>
               </SurvivalGuideHero>
 
@@ -426,6 +440,25 @@ export default async function PlatformSurvivalGuidePage({
                 subtext={prioritySubtext}
               />
             </div>
+
+            {recentPolicyChanges.length > 0 ? (
+              <section className="scroll-mt-32 pt-4" id="radar">
+                <div className="space-y-3">
+                  <h2 className="text-4xl font-black tracking-tight text-slate-900">
+                    Change Radar
+                  </h2>
+                  <p className="max-w-4xl text-xl font-medium leading-relaxed text-slate-600">
+                    When official policy language changes, this is where to start. Review the operational impact before it turns into platform friction.
+                  </p>
+                </div>
+
+                <div className="mt-8 grid gap-6">
+                  {recentPolicyChanges.map((change) => (
+                    <PolicyChangeCard key={change.id} change={change} />
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <section className="space-y-8 scroll-mt-32" id="risk-summary">
               <div className="space-y-3">

@@ -7,6 +7,10 @@ export const requiredPolibrawlTables = [
   "dependency_scores",
   "risk_timelines",
   "evidence_confidence",
+  "policy_changes",
+  "user_platform_watchlist",
+  "policy_alerts",
+  "editorial_drafts",
 ] as const;
 
 export function findMissingPolibrawlTables(existingTables: readonly string[]) {

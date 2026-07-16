@@ -1,5 +1,6 @@
 import {
   Building2,
+  FilePenLine,
   FlaskConical,
   Globe2,
   LayoutList,
@@ -17,6 +18,7 @@ export const adminRouteGroups = [
       { href: "/admin/sources", label: "Sources", icon: LayoutList, disabled: false },
       { href: "/admin/candidates", label: "Candidates", icon: ScanSearch, disabled: false },
       { href: "/admin/research-packets", label: "Research Packets", icon: FlaskConical, disabled: false },
+      { href: "/admin/editorial-drafts", label: "Editorial Drafts", icon: FilePenLine, disabled: false },
       { href: "/admin/red-flags", label: "Red Flags", icon: ShieldAlert, disabled: false },
       { href: "/admin/survival-pages", label: "Survival Pages", icon: LayoutList, disabled: false },
       { href: "/admin/community", label: "Community", icon: Users, disabled: true },

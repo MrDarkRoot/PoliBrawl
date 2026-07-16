@@ -8,8 +8,12 @@ import {
 } from "./lib/polibrawl-db.mjs";
 
 const requiredTrackedMigrations = [
+  resolveRepoPath("scripts/sql/add-ai-editorial-worker-v1.sql"),
   resolveRepoPath("scripts/sql/add-platform-survival-intelligence-v1.sql"),
+  resolveRepoPath("scripts/sql/add-policy-intelligence-retention-v1.sql"),
   resolveRepoPath("scripts/sql/add-production-hardening-v1.sql"),
+  // Sprint 10.5 — Editorial Intelligence Calibration
+  resolveRepoPath("scripts/sql/add-editorial-calibration-v1.sql"),
 ];
 
 await loadStandardEnvFiles();

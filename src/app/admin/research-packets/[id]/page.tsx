@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, FlaskConical } from "lucide-react";
+import { ArrowLeft, AlertTriangle, FilePenLine, FlaskConical } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { CopyButton } from "@/features/research-packets/components/copy-button";
+import { generateEditorialDraftFromResearchPacketAction } from "@/features/editorial-drafts/actions/editorial-draft.actions";
 import {
   findResearchPacketWithEvidence,
 } from "@/server/polibrawl/repositories/research-packet.repository";
@@ -346,6 +347,28 @@ export default async function ResearchPacketDetailPage({
                   </a>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <FilePenLine className="h-4 w-4" />
+                AI Editorial Worker
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Generate a structured internal draft from this packet. The result stays in admin review and never publishes automatically.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form action={generateEditorialDraftFromResearchPacketAction.bind(null, packet.id)}>
+                <button
+                  type="submit"
+                  className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
+                >
+                  Generate Editorial Draft
+                </button>
+              </form>
             </CardContent>
           </Card>
 

@@ -11,7 +11,7 @@
     "db:apply-schema": "node scripts/apply-schema.mjs",
     "db:health": "node scripts/check-polibrawl-db-health.mjs",
     "db:verify-migrations": "node scripts/verify-polibrawl-migration-readiness.mjs",
-    "test:hardening": "node --import tsx --test tests/production-hardening/*.test.ts"
+    "test:hardening": "node --import tsx --test --test-force-exit tests/production-hardening/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

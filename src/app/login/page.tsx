@@ -9,9 +9,16 @@ export default async function LoginPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const resolvedSearchParams = await searchParams;
+  const redirectToRaw = resolvedSearchParams.next;
+  const redirectTo =
+    typeof redirectToRaw === "string" &&
+    redirectToRaw.startsWith("/") &&
+    !redirectToRaw.startsWith("//")
+      ? redirectToRaw
+      : "/dashboard";
   const initialError =
     resolvedSearchParams.error === "role"
-      ? "Your profile does not have editor access."
+      ? "Your profile does not have access to the requested area."
       : null;
 
   return (
@@ -21,7 +28,7 @@ export default async function LoginPage({
           <AppLogo />
         </div>
         {!hasSupabaseEnv() ? <ConfigBanner /> : null}
-        <LoginForm initialError={initialError} />
+        <LoginForm initialError={initialError} redirectTo={redirectTo} />
       </div>
     </div>
   );

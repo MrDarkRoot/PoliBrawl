@@ -22,6 +22,12 @@ export const requiredPolibrawlTables = [
   "dependency_scores",
   "risk_timelines",
   "evidence_confidence",
+  "policy_changes",
+  "user_platform_watchlist",
+  "policy_alerts",
+  "editorial_drafts",
+  // Sprint 10.5 — Editorial Intelligence Calibration
+  "editorial_draft_revisions",
 ];
 
 async function loadEnvFile(filename) {

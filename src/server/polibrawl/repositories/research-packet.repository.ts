@@ -104,6 +104,24 @@ export async function listResearchPacketEvidence(
   );
 }
 
+export async function listResearchPacketEvidenceByIds(
+  packetId: Uuid,
+  evidenceIds: readonly Uuid[],
+): Promise<ResearchPacketEvidence[]> {
+  if (evidenceIds.length === 0) {
+    return [];
+  }
+
+  return queryMany<ResearchPacketEvidence>(
+    `select *
+     from research_packet_evidence
+     where research_packet_id = $1
+       and id = any($2::uuid[])
+     order by array_position($2::uuid[], id)`,
+    [packetId, evidenceIds],
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Joined query for detailed view
 // ---------------------------------------------------------------------------
