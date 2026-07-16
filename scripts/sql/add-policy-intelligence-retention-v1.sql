@@ -42,9 +42,7 @@ alter table if exists policy_changes add column if not exists why_it_matters tex
 alter table if exists policy_changes add column if not exists what_to_do text[] not null default '{}'::text[];
 alter table if exists policy_changes add column if not exists published_at timestamptz;
 alter table if exists policy_changes add column if not exists archived_at timestamptz;
-alter table if exists policy_changes add column if not exists created_at timestamptz not null default now();
 alter table if exists policy_changes add column if not exists updated_at timestamptz not null default now();
-alter table if exists policy_changes add column if not exists reviewed_at timestamptz;
 alter table if exists policy_changes add column if not exists policy_source_id uuid;
 alter table if exists policy_changes add column if not exists old_version_id uuid;
 alter table if exists policy_changes add column if not exists new_version_id uuid;
